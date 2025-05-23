@@ -61,26 +61,7 @@ cd intelligent-voice-identification-system
    - Neural Network Toolbox
    - Statistics and Machine Learning Toolbox
 
-3. Prepare the audio samples directory structure:
-
-```
-data/
-├── simple/                # Simple sounds
-│   ├── a/
-│   │   └── a - normalnie/
-│   │       └── Dźwięk {1..10}.wav
-│   ├── e/
-│   │   └── e - normalnie/
-│   │       └── Dźwięk {1..10}.wav
-│   └── i/
-│       └── i - normalnie/
-│           └── Dźwięk {1..10}.wav
-└── complex/              # Word pairs
-    └── pairs/
-        └── Dźwięk {1..10}.wav
-```
-
-4. Record or prepare audio samples:
+3. Record or prepare audio samples:
 
    - Simple sounds: Record vowels (a, e, i) in normal speaking voice
    - Complex sounds: Record word pairs
@@ -90,7 +71,7 @@ data/
      - 16-bit depth
      - Mono channel
 
-5. Configure MATLAB paths:
+4. Configure MATLAB paths:
 
    - Open MATLAB
    - Navigate to the project directory
@@ -100,13 +81,13 @@ data/
    addpath(genpath('path/to/project'));
    ```
 
-6. Run the main script:
+5. Run the main script:
 
 ```matlab
 voiceRecognition.m
 ```
 
-7. Check the output:
+6. Check the output:
    - Preprocessed data will be saved in 'preprocessed_data.mat'
    - Trained network will be saved in 'trained_network.mat'
    - Results visualization will be displayed automatically
