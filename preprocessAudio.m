@@ -60,8 +60,11 @@ feature_names = fieldnames(features_struct);
 features = zeros(1, numel(feature_names));
 
 for i = 1:numel(feature_names)
-    % Pobierz wartość cechy bez normalizacji
     features(i) = features_struct.(feature_names{i});
 end
+
+% Upewnienie się, że nie ma wartości NaN lub Inf
+features(isnan(features)) = 0;
+features(isinf(features)) = 0;
 
 end

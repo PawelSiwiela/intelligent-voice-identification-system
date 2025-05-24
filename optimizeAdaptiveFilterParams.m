@@ -48,7 +48,7 @@ total_iterations = length(M_range)*(length(mi_range) + ...
 current_iteration = 0;
 
 % Po inicjalizacji parametrów dodajemy maksymalny akceptowalny czas
-max_acceptable_time = 0.1; % zmniejszenie z 0.2s na 0.1s
+max_acceptable_time = 0.3; % zmniejszenie z 0.2s na 0.1s
 
 % Optymalizacja LMS
 %fprintf('\nOptymalizacja LMS:\n');

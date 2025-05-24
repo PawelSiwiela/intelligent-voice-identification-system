@@ -3,74 +3,136 @@ clear all;
 clc;
 
 % Parametry
-noise_level = 0.1; % Poziom szumu (10% amplitudy sygnału)
-
-% Przygotowanie danych uczących
+noise_level = 0.1;
 num_samples = 10;
+
+% Definicja kategorii dźwięków
+use_vowels = false;    % Ustaw false aby wyłączyć analizę samogłosek
+use_complex = true;   % Ustaw false aby wyłączyć analizę par słów
+
+% Samogłoski
 vowels = {'a', 'e', 'i'};
 num_vowels = length(vowels);
+
+% Pary słów
+complex_commands = {
+    'Drzwi/Otwórz drzwi', 'Drzwi/Zamknij drzwi', ...
+    'Odbiornik/Włącz odbiornik', 'Odbiornik/Wyłącz odbiornik', ...
+    'Światło/Włącz światło', 'Światło/Wyłącz światło', ...
+    'Temperatura/Zmniejsz temperaturę', 'Temperatura/Zwiększ temperaturę'
+    };
+num_commands = length(complex_commands);
+
+% Określenie całkowitej liczby kategorii
+if use_vowels && use_complex
+    total_categories = num_vowels + num_commands;
+    labels = [vowels, complex_commands];
+elseif use_vowels
+    total_categories = num_vowels;
+    labels = vowels;
+else
+    total_categories = num_commands;
+    labels = complex_commands;
+end
 
 % Inicjalizacja macierzy cech
 X = [];  % Macierz cech
 Y = [];  % Etykiety (one-hot encoding)
 
-% Sprawdzenie istnienia folderu głównego
+% Sprawdzenie istnienia folderów
 current_file_path = mfilename('fullpath');
 [current_dir, ~, ~] = fileparts(current_file_path);
-[parent_dir, ~, ~] = fileparts(current_dir);
-base_path = fullfile(parent_dir, 'dźwięki proste');
-
-if ~exist(base_path, 'dir')
-    error('Folder "%s" nie został znaleziony!', base_path);
-end
+simple_path = fullfile(current_dir, 'data', 'simple');
+complex_path = fullfile(current_dir, 'data', 'complex');
 
 % Liczniki udanych wczytań
 successful_loads = 0;
 failed_loads = 0;
 
 % Utworzenie głównego paska postępu
-total_samples = num_vowels * num_samples;
-h_main = waitbar(0, 'Rozpoczynam przetwarzanie próbek...', ...
-    'Name', 'Postęp przetwarzania');
+total_samples = ((use_vowels * num_vowels) + (use_complex * num_commands)) * num_samples;
+h_main = waitbar(0, 'Rozpoczynam przetwarzanie próbek...', 'Name', 'Postęp przetwarzania');
 sample_count = 0;
 
-% Wczytanie i przetworzenie wszystkich próbek
-for v = 1:num_vowels
-    vowel = vowels{v};
-    vowel_path = fullfile(base_path, vowel, [vowel ' - normalnie']);
-    
-    if ~exist(vowel_path, 'dir')
-        warning('Folder "%s" nie istnieje. Pomijam samogłoskę %s.', vowel_path, vowel);
-        continue;
+% Na początku pliku, po inicjalizacji
+total_time_start = tic; % Start pomiaru całkowitego czasu
+
+% Wczytanie samogłosek
+if use_vowels
+    if ~exist(simple_path, 'dir')
+        error('Folder z samogłoskami nie został znaleziony! Ścieżka: %s', simple_path);
     end
     
-    for i = 1:num_samples
-        % Aktualizacja paska postępu
-        sample_count = sample_count + 1;
-        waitbar(sample_count/total_samples, h_main, ...
-            sprintf('Przetwarzanie: %s, próbka %d/%d (Postęp: %.1f%%)', ...
-            vowel, i, num_samples, 100*sample_count/total_samples));
+    for v = 1:num_vowels
+        vowel = vowels{v};
+        vowel_path = fullfile(simple_path, vowel, [vowel ' - normalnie']);
         
-        % Pełna ścieżka do pliku
-        file_path = fullfile(vowel_path, sprintf('Dźwięk %d.wav', i));
-        
-        try
-            % Ekstrakcja cech
-            [features, feature_names] = preprocessAudio(file_path, noise_level);
-            
-            % Dodanie do macierzy cech
-            X = [X; features];
-            
-            % Utworzenie etykiety one-hot
-            label = zeros(1, num_vowels);
-            label(v) = 1;
-            Y = [Y; label];
-            
-            successful_loads = successful_loads + 1;
-        catch ME
-            failed_loads = failed_loads + 1;
-            warning('Problem z przetworzeniem pliku %s: %s', file_path, ME.message);
+        if ~exist(vowel_path, 'dir')
+            warning('Folder "%s" nie istnieje. Pomijam samogłoskę %s.', vowel_path, vowel);
             continue;
+        end
+        
+        for i = 1:num_samples
+            % Aktualizacja paska postępu
+            sample_count = sample_count + 1;
+            waitbar(sample_count/total_samples, h_main, ...
+                sprintf('Przetwarzanie samogłoski: %s, próbka %d/%d (Postęp: %.1f%%)', ...
+                vowel, i, num_samples, 100*sample_count/total_samples));
+            
+            % Pełna ścieżka do pliku
+            file_path = fullfile(vowel_path, sprintf('Dźwięk %d.wav', i));
+            
+            try
+                [features, feature_names] = preprocessAudio(file_path, noise_level);
+                X = [X; features];
+                label = zeros(1, total_categories);
+                label(v) = 1;
+                Y = [Y; label];
+                successful_loads = successful_loads + 1;
+            catch ME
+                failed_loads = failed_loads + 1;
+                warning('Problem z przetworzeniem pliku %s: %s', file_path, ME.message);
+            end
+        end
+    end
+end
+
+% Wczytanie par słów
+if use_complex
+    if ~exist(complex_path, 'dir')
+        error('Folder z komendami złożonymi nie został znaleziony! Ścieżka: %s', complex_path);
+    end
+    
+    for c = 1:num_commands
+        command_parts = strsplit(complex_commands{c}, '/');
+        command_path = fullfile(complex_path, command_parts{1}, command_parts{2}, 'normalnie');
+        
+        if ~exist(command_path, 'dir')
+            warning('Folder "%s" nie istnieje. Pomijam komendę %s.', command_path, complex_commands{c});
+            continue;
+        end
+        
+        for i = 1:num_samples
+            % Aktualizacja paska postępu
+            sample_count = sample_count + 1;
+            waitbar(sample_count/total_samples, h_main, ...
+                sprintf('Przetwarzanie komendy: %s, próbka %d/%d (Postęp: %.1f%%)', ...
+                complex_commands{c}, i, num_samples, 100*sample_count/total_samples));
+            
+            % Pełna ścieżka do pliku
+            file_path = fullfile(command_path, sprintf('Dźwięk %d.wav', i));
+            
+            try
+                [features, feature_names] = preprocessAudio(file_path, noise_level);
+                X = [X; features];
+                label = zeros(1, total_categories);
+                label(num_vowels + c) = 1;
+                Y = [Y; label];
+                successful_loads = successful_loads + 1;
+            catch ME
+                failed_loads = failed_loads + 1;
+                warning('Problem z przetworzeniem pliku %s: %s', file_path, ME.message);
+            end
         end
     end
 end
@@ -125,16 +187,40 @@ if ~isempty(X)
     net.trainParam.goal = 1e-7; % Niższy próg błędu
     net.trainParam.min_grad = 1e-6;
     
+    % Po inicjalizacji macierzy cech
+    fprintf('\nRozpoczęcie przetwarzania...\n');
+    preprocessing_time_start = tic; % Start pomiaru czasu preprocessingu
+
     % Trenowanie sieci
     fprintf('\nRozpoczynam trenowanie sieci...\n');
     [net, tr] = train(net, X_train', Y_train');
     
-    % Testowanie sieci
-    Y_pred = net(X_test')';
+    % Po zakończeniu wczytywania próbek
+    preprocessing_time = toc(preprocessing_time_start);
+    fprintf('\nCzas przetwarzania wstępnego: %.2f sekund (%.2f minut)\n', ...
+        preprocessing_time, preprocessing_time/60);
     
-    % Konwersja wyników na etykiety
+    % Przed treningiem sieci
+    training_time_start = tic; % Start pomiaru czasu treningu
+    fprintf('\nRozpoczynam trenowanie sieci...\n');
+    
+    [net, tr] = train(net, X_train', Y_train');
+    
+    training_time = toc(training_time_start);
+    fprintf('Czas trenowania sieci: %.2f sekund (%.2f minut)\n', ...
+        training_time, training_time/60);
+    
+    % Przed testowaniem sieci
+    testing_time_start = tic; % Start pomiaru czasu testowania
+    fprintf('\nTestowanie sieci...\n');
+    
+    Y_pred = net(X_test')';
     [~, predicted_labels] = max(Y_pred, [], 2);
     [~, true_labels] = max(Y_test, [], 2);
+    accuracy = sum(predicted_labels == true_labels) / length(true_labels);
+    
+    testing_time = toc(testing_time_start);
+    fprintf('Czas testowania sieci: %.2f sekund\n', testing_time);
     
     % Obliczanie dokładności
     accuracy = sum(predicted_labels == true_labels) / length(true_labels);
@@ -151,7 +237,7 @@ if ~isempty(X)
     
     % Macierz pomyłek
     subplot(2,2,1);
-    confusionchart(cm, vowels);
+    confusionchart(cm, labels);
     title('Macierz pomyłek');
     
     % Historia uczenia
@@ -174,16 +260,17 @@ if ~isempty(X)
     grid on;
     
     % Zapisanie wytrenowanej sieci
-    save('trained_network.mat', 'net', 'tr', 'accuracy', 'cm');
+    save('trained_network.mat', 'net', 'tr', 'accuracy', 'cm', ...
+        'preprocessing_time', 'training_time', 'testing_time', 'total_time');
     
     % Szczegółowe statystyki dla każdej klasy
-    fprintf('\nStatystyki dla poszczególnych samogłosek:\n');
-    for i = 1:length(vowels)
+    fprintf('\nStatystyki dla poszczególnych kategorii:\n');
+    for i = 1:length(labels)
         precision = cm(i,i) / sum(cm(:,i));
         recall = cm(i,i) / sum(cm(i,:));
         f1_score = 2 * (precision * recall) / (precision + recall);
         
-        fprintf('\nSamogłoska "%s":\n', vowels{i});
+        fprintf('\nKategoria "%s":\n', labels{i});
         fprintf('Precyzja: %.2f%%\n', precision * 100);
         fprintf('Czułość: %.2f%%\n', recall * 100);
         fprintf('F1-Score: %.2f%%\n', f1_score * 100);
@@ -191,3 +278,15 @@ if ~isempty(X)
 else
     error('Nie udało się wczytać żadnych danych!');
 end
+
+% Na końcu pliku, przed końcowym else
+total_time = toc(total_time_start);
+fprintf('\nStatystyki czasowe:\n');
+fprintf('Całkowity czas wykonania: %.2f sekund (%.2f minut)\n', ...
+    total_time, total_time/60);
+fprintf('  - Przetwarzanie wstępne: %.2f sekund (%.1f%%)\n', ...
+    preprocessing_time, 100*preprocessing_time/total_time);
+fprintf('  - Trening sieci: %.2f sekund (%.1f%%)\n', ...
+    training_time, 100*training_time/total_time);
+fprintf('  - Testowanie: %.2f sekund (%.1f%%)\n', ...
+    testing_time, 100*testing_time/total_time);
