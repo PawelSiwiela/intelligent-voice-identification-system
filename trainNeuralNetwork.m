@@ -10,6 +10,7 @@ function [net, results] = trainNeuralNetwork(X, Y, labels, varargin)
 %     'Epochs' - liczba epok (domyślnie 1500)
 %     'Goal' - próg błędu (domyślnie 1e-7)
 %     'TestRatio' - procent danych testowych (domyślnie 0.2)
+%     'TestSamplesPerCategory' - liczba próbek testowych na kategorię (domyślnie 2)
 %     'SaveResults' - czy zapisać wyniki (domyślnie true)
 %     'ShowPlots' - czy pokazać wykresy (domyślnie true)
 %
@@ -23,6 +24,7 @@ addParameter(p, 'HiddenLayers', [15 8], @(x) isnumeric(x) && all(x > 0));
 addParameter(p, 'Epochs', 1500, @(x) isnumeric(x) && x > 0);
 addParameter(p, 'Goal', 1e-7, @(x) isnumeric(x) && x > 0);
 addParameter(p, 'TestRatio', 0.2, @(x) isnumeric(x) && x >= 0 && x <= 1);
+addParameter(p, 'TestSamplesPerCategory', 2, @(x) isnumeric(x) && x >= 1);
 addParameter(p, 'SaveResults', true, @islogical);
 addParameter(p, 'ShowPlots', true, @islogical);
 parse(p, varargin{:});
@@ -31,6 +33,7 @@ hidden_layers = p.Results.HiddenLayers;
 epochs = p.Results.Epochs;
 goal = p.Results.Goal;
 test_ratio = p.Results.TestRatio;
+test_samples_per_category = p.Results.TestSamplesPerCategory;
 save_results = p.Results.SaveResults;
 show_plots = p.Results.ShowPlots;
 
@@ -41,17 +44,59 @@ fprintf('  - Epoki: %d\n', epochs);
 fprintf('  - Próg błędu: %.2e\n', goal);
 fprintf('  - Procent danych testowych: %.1f%%\n', test_ratio * 100);
 
-% Podział na zbiór treningowy i testowy
+% Podział na zbiór treningowy i testowy - STRATYFIKOWANY
 if test_ratio > 0
-    cv = cvpartition(size(X,1), 'HoldOut', test_ratio);
-    X_train = X(cv.training,:);
-    Y_train = Y(cv.training,:);
-    X_test = X(cv.test,:);
-    Y_test = Y(cv.test,:);
+    num_samples = size(X, 1);
+    % Obliczenie liczby próbek testowych na kategorię
+    samples_per_test = test_samples_per_category;
+    
+    fprintf('\nPodział stratyfikowany: %d próbek testowych na kategorię\n', samples_per_test);
+    
+    % Inicjalizacja indeksów
+    train_indices = [];
+    test_indices = [];
+    
+    % Dla każdej kategorii wybierz próbki
+    for cat = 1:length(labels)
+        % Znajdź wszystkie próbki tej kategorii
+        category_indices = find(Y(:, cat) == 1);
+        
+        if length(category_indices) < samples_per_test
+            warning('Kategoria "%s" ma tylko %d próbek, ale potrzeba %d dla testu', ...
+                labels{cat}, length(category_indices), samples_per_test);
+            samples_for_this_cat = length(category_indices);
+        else
+            samples_for_this_cat = samples_per_test;
+        end
+        
+        % Losowy wybór próbek testowych dla tej kategorii
+        if samples_for_this_cat > 0
+            test_idx = randperm(length(category_indices), samples_for_this_cat);
+            test_indices = [test_indices; category_indices(test_idx)];
+            
+            % Pozostałe próbki idą do zbioru treningowego
+            train_idx = setdiff(1:length(category_indices), test_idx);
+            train_indices = [train_indices; category_indices(train_idx)];
+        end
+    end
+    
+    % Utworzenie zbiorów danych
+    X_train = X(train_indices, :);
+    Y_train = Y(train_indices, :);
+    X_test = X(test_indices, :);
+    Y_test = Y(test_indices, :);
     
     fprintf('\nInformacje o zbiorach danych:\n');
     fprintf('Liczba próbek treningowych: %d\n', size(X_train, 1));
     fprintf('Liczba próbek testowych: %d\n', size(X_test, 1));
+    
+    % Sprawdzenie reprezentacji kategorii w zbiorze testowym
+    fprintf('\nRozkład kategorii w zbiorze testowym:\n');
+    for cat = 1:length(labels)
+        count = sum(Y_test(:, cat));
+        fprintf('  %s: %d próbek\n', labels{cat}, count);
+    end
+    
 else
     % Brak podziału - trenowanie na wszystkich danych
     X_train = X;
