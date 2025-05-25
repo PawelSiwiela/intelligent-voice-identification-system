@@ -2,8 +2,8 @@
 % INTELLIGENT VOICE IDENTIFICATION SYSTEM - GŁÓWNY SKRYPT URUCHAMIAJĄCY
 % =========================================================================
 % Skrypt główny do uruchamiania systemu rozpoznawania głosu
-% 
-% AUTOR: [Twoje dane]
+%
+% AUTOR: Paweł Siwiela
 % DATA: 2025
 % =========================================================================
 
@@ -31,12 +31,12 @@ fprintf('📁 Dodano ścieżki do kodu źródłowego\n');
 
 % Lista katalogów wyjściowych do utworzenia
 output_dirs = {
-    'output', 
-    'output\networks', 
-    'output\results', 
-    'output\preprocessed', 
+    'output',
+    'output\networks',
+    'output\results',
+    'output\preprocessed',
     'output\logs'
-};
+    };
 
 % Lista plików .gitkeep do utworzenia
 gitkeep_files = {
@@ -44,7 +44,7 @@ gitkeep_files = {
     'output\results\.gitkeep',
     'output\preprocessed\.gitkeep',
     'output\logs\.gitkeep'
-};
+    };
 
 % Tworzenie katalogów jeśli nie istnieją
 for i = 1:length(output_dirs)
