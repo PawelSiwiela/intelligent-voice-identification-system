@@ -110,6 +110,10 @@ expected_categories = (use_vowels * num_vowels) + (use_complex * num_commands);
 % Utworzenie okna postępu
 h_main = createProgressWindow(total_samples, expected_categories);
 
+logInfo('=== ROZPOCZĘCIE WCZYTYWANIA DANYCH AUDIO ===');
+logInfo('Konfiguracja: noise=%.1f, samples=%d, vowels=%s, complex=%s', ...
+    noise_level, num_samples, yesno(use_vowels), yesno(use_complex));
+
 % =========================================================================
 % WCZYTYWANIE SAMOGŁOSEK
 % =========================================================================
@@ -117,6 +121,7 @@ h_main = createProgressWindow(total_samples, expected_categories);
 if use_vowels
     % Sprawdzenie istnienia folderu z samogłoskami
     if ~exist(simple_path, 'dir')
+        logError('Folder z samogłoskami nie został znaleziony! Ścieżka: %s', simple_path);
         error('Folder z samogłoskami nie został znaleziony! Ścieżka: %s', simple_path);
     end
     
@@ -132,7 +137,7 @@ if use_vowels
         
         % Sprawdzenie istnienia folderu
         if ~exist(vowel_path, 'dir')
-            warning('Folder "%s" nie istnieje. Pomijam samogłoskę %s.', vowel_path, vowels{v});
+            logWarning('Folder "%s" nie istnieje. Pomijam samogłoskę %s.', vowel_path, vowels{v});
             continue;
         end
         
@@ -153,6 +158,8 @@ if use_vowels
             % Ścieżka do konkretnego pliku audio
             file_path = fullfile(vowel_path, sprintf('Dźwięk %d.wav', i));
             
+            logDebug('Przetwarzanie: %s [%d/%d]', file_path, i, num_samples);
+            
             % Przetwarzanie pliku audio
             try
                 [features, ~] = preprocessAudio(file_path, noise_level);
@@ -162,7 +169,7 @@ if use_vowels
                     X = features;
                 else
                     if length(features) ~= size(X, 2)
-                        warning('Niezgodność wymiarów! Oczekiwano %d cech, otrzymano %d dla pliku %s', ...
+                        logWarning('Niezgodność wymiarów! Oczekiwano %d cech, otrzymano %d dla pliku %s', ...
                             size(X,2), length(features), file_path);
                         continue;
                     end
@@ -171,7 +178,7 @@ if use_vowels
                 
                 % Tworzenie etykiety one-hot dla samogłoski
                 if v > total_categories
-                    error('Błąd indeksowania: próba dostępu do indeksu %d gdy total_categories = %d', ...
+                    logError('Błąd indeksowania: próba dostępu do indeksu %d gdy total_categories = %d', ...
                         v, total_categories);
                 end
                 
@@ -179,10 +186,50 @@ if use_vowels
                 label(v) = 1;
                 Y = [Y; label];
                 successful_loads = successful_loads + 1;
+                logDebug('✅ Sukces: %s', file_path);
                 
             catch ME
                 failed_loads = failed_loads + 1;
-                warning('Problem z przetworzeniem pliku %s: %s', file_path, ME.message);
+                logError('❌ Błąd w pliku %s: %s', file_path, ME.message);
+                
+                % SZCZEGÓŁOWE LOGOWANIE BŁĘDÓW FILTRÓW ADAPTACYJNYCH:
+                if contains(ME.message, 'M_rls') || contains(ME.message, 'RLS')
+                    logError('SZCZEGÓŁY BŁĘDU RLS:');
+                    logError('  - Plik: %s', file_path);
+                    logError('  - Komunikat: %s', ME.message);
+                    if length(ME.stack) > 0
+                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
+                    end
+                elseif contains(ME.message, 'M_lms') || contains(ME.message, 'LMS')
+                    logError('SZCZEGÓŁY BŁĘDU LMS:');
+                    logError('  - Plik: %s', file_path);
+                    logError('  - Komunikat: %s', ME.message);
+                    if length(ME.stack) > 0
+                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
+                    end
+                elseif contains(ME.message, 'M_nlms') || contains(ME.message, 'NLMS')
+                    logError('SZCZEGÓŁY BŁĘDU NLMS:');
+                    logError('  - Plik: %s', file_path);
+                    logError('  - Komunikat: %s', ME.message);
+                    if length(ME.stack) > 0
+                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
+                    end
+                elseif contains(ME.message, 'Argument must be') || contains(ME.message, 'Matrix dimensions')
+                    logError('SZCZEGÓŁY BŁĘDU MACIERZY/ARGUMENTÓW:');
+                    logError('  - Plik: %s', file_path);
+                    logError('  - Komunikat: %s', ME.message);
+                    if length(ME.stack) > 0
+                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
+                    end
+                else
+                    % OGÓLNY BŁĄD
+                    logError('SZCZEGÓŁY BŁĘDU OGÓLNEGO:');
+                    logError('  - Plik: %s', file_path);
+                    logError('  - Komunikat: %s', ME.message);
+                    if length(ME.stack) > 0
+                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
+                    end
+                end
             end
         end
     end
@@ -195,6 +242,7 @@ end
 if use_complex
     % Sprawdzenie istnienia folderu z komendami złożonymi
     if ~exist(complex_path, 'dir')
+        logError('Folder z komendami złożonymi nie został znaleziony! Ścieżka: %s', complex_path);
         error('Folder z komendami złożonymi nie został znaleziony! Ścieżka: %s', complex_path);
     end
     
@@ -208,7 +256,7 @@ if use_complex
         
         % Sprawdzenie istnienia folderu
         if ~exist(command_path, 'dir')
-            warning('Folder "%s" nie istnieje. Pomijam komendę %s.', command_path, all_commands{c});
+            logWarning('Folder "%s" nie istnieje. Pomijam komendę %s.', command_path, all_commands{c});
             continue;
         end
         
@@ -238,7 +286,7 @@ if use_complex
                     X = features;
                 else
                     if length(features) ~= size(X, 2)
-                        warning('Niezgodność wymiarów! Oczekiwano %d cech, otrzymano %d dla pliku %s', ...
+                        logWarning('Niezgodność wymiarów! Oczekiwano %d cech, otrzymano %d dla pliku %s', ...
                             size(X,2), length(features), file_path);
                         continue;
                     end
@@ -254,7 +302,7 @@ if use_complex
                 
                 % Sprawdzenie poprawności indeksu
                 if label_index > total_categories
-                    error('Błąd indeksowania: próba dostępu do indeksu %d gdy total_categories = %d', ...
+                    logError('Błąd indeksowania: próba dostępu do indeksu %d gdy total_categories = %d', ...
                         label_index, total_categories);
                 end
                 
@@ -266,7 +314,7 @@ if use_complex
                 
             catch ME
                 failed_loads = failed_loads + 1;
-                warning('Problem z przetworzeniem pliku %s: %s', file_path, ME.message);
+                logError('Problem z przetworzeniem pliku %s: %s', file_path, ME.message);
             end
         end
     end
@@ -283,13 +331,13 @@ end
 
 % Sprawdzenie ilości wczytanych danych
 if successful_loads < 10
-    warning('Zbyt mało próbek do analizy! Wczytano tylko %d próbek.', successful_loads);
+    logWarning('Zbyt mało próbek do analizy! Wczytano tylko %d próbek.', successful_loads);
 end
 
 % Wyświetlenie statystyk
-fprintf('\n📊 Statystyki wczytywania:\n');
-fprintf('   ✅ Udane wczytania: %d\n', successful_loads);
-fprintf('   ❌ Nieudane wczytania: %d\n', failed_loads);
+logInfo('=== STATYSTYKI WCZYTYWANIA ===');
+logInfo('Udane wczytania: %d', successful_loads);
+logInfo('Nieudane wczytania: %d', failed_loads);
 
 % =========================================================================
 % ZAPIS DANYCH DO PLIKU
@@ -305,18 +353,19 @@ output_path = fullfile('output', 'preprocessed', data_filename);
 % Zapisanie danych wraz z metadanymi
 if ~isempty(X)
     if normalize_features_flag
-        fprintf('⚖️ Normalizacja cech...\n');
+        logInfo('⚖️ Normalizacja cech...');
         X = normalizeFeatures(X);
     else
-        fprintf('🔧 Pomijanie normalizacji cech...\n');
+        logInfo('🔧 Pomijanie normalizacji cech...');
     end
     
     % Zapisanie danych
     save(output_path, 'X', 'Y', 'labels', 'successful_loads', 'failed_loads', ...
         'normalize_features_flag', 'noise_level', 'num_samples', 'use_vowels', 'use_complex');
     
-    fprintf('💾 Dane zostały zapisane do pliku %s (cechy: %s)\n', output_path, normalization_status);
+    logSuccess('💾 Dane zostały zapisane do pliku %s (cechy: %s)', output_path, normalization_status);
 else
+    logError('❌ Nie udało się wczytać żadnych danych!');
     error('❌ Nie udało się wczytać żadnych danych!');
 end
 end

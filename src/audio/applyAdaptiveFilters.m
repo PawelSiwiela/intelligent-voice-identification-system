@@ -24,8 +24,28 @@ function [filtered_signal, mse_improvement] = applyAdaptiveFilters(noisy_signal,
 % =========================================================================
 
 % Wywołanie funkcji optymalizacji parametrów dla wszystkich filtrów
-%fprintf('⚙️ Optymalizacja parametrów filtrów adaptacyjnych...\n');
-best_params = optimizeAdaptiveFilterParams(original_signal, 0.1);
+try
+    logDebug('⚙️ Optymalizacja parametrów filtrów adaptacyjnych...');
+    best_params = optimizeAdaptiveFilterParams(original_signal, 0.1);
+catch ME
+    logError('Błąd optymalizacji filtrów: %s. Używam domyślnych parametrów.', ME.message);
+    
+    % DOMYŚLNE BEZPIECZNE PARAMETRY
+    N = length(noisy_signal);
+    safe_order = min(8, floor(N/10));  % Bezpieczny rząd filtru
+    
+    best_params = struct();
+    best_params.M_lms = safe_order;
+    best_params.M_nlms = safe_order;
+    best_params.M_rls = safe_order;
+    best_params.mi = 0.01;
+    best_params.alfa = 0.5;
+    best_params.beta = 1e-4;
+    best_params.lambda = 0.99;
+    best_params.delta = 0.1;
+    
+    logInfo('🔧 Używam domyślnych parametrów: rząd=%d', safe_order);
+end
 
 % Wyciągnięcie optymalnych parametrów z struktury wynikowej
 M_lms = best_params.M_lms;        % Rząd filtru LMS

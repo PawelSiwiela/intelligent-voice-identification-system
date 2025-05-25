@@ -27,6 +27,7 @@ addParameter(p, 'TestRatio', 0.2, @(x) isnumeric(x) && x >= 0 && x <= 1);
 addParameter(p, 'TestSamplesPerCategory', 2, @(x) isnumeric(x) && x >= 1);
 addParameter(p, 'SaveResults', true, @islogical);
 addParameter(p, 'ShowPlots', true, @islogical);
+addParameter(p, 'Verbose', false, @islogical);
 parse(p, varargin{:});
 
 hidden_layers = p.Results.HiddenLayers;
@@ -36,13 +37,17 @@ test_ratio = p.Results.TestRatio;
 test_samples_per_category = p.Results.TestSamplesPerCategory;
 save_results = p.Results.SaveResults;
 show_plots = p.Results.ShowPlots;
+verbose = p.Results.Verbose;
 
-fprintf('Rozpoczęcie trenowania sieci neuronowej...\n');
-fprintf('Parametry:\n');
-fprintf('  - Warstwy ukryte: [%s]\n', num2str(hidden_layers));
-fprintf('  - Epoki: %d\n', epochs);
-fprintf('  - Próg błędu: %.2e\n', goal);
-fprintf('  - Procent danych testowych: %.1f%%\n', test_ratio * 100);
+logInfo('Rozpoczęcie trenowania sieci neuronowej...');
+logInfo('Parametry:');
+logInfo('  - Warstwy ukryte: [%s]', num2str(hidden_layers));
+logInfo('  - Epoki: %d', epochs);
+logInfo('  - Próg błędu: %.2e', goal);
+logInfo('  - Procent danych testowych: %.1f%%', test_ratio * 100);
+
+% Na początku funkcji (po parse(p, varargin{:})):
+verbose = false; % DODAJ TĘ FLAGĘ
 
 % Podział na zbiór treningowy i testowy - STRATYFIKOWANY
 if test_ratio > 0
@@ -50,7 +55,7 @@ if test_ratio > 0
     % Obliczenie liczby próbek testowych na kategorię
     samples_per_test = test_samples_per_category;
     
-    fprintf('\nPodział stratyfikowany: %d próbek testowych na kategorię\n', samples_per_test);
+    logInfo('Podział stratyfikowany: %d próbek testowych na kategorię', samples_per_test);
     
     % Inicjalizacja indeksów
     train_indices = [];
@@ -62,7 +67,7 @@ if test_ratio > 0
         category_indices = find(Y(:, cat) == 1);
         
         if length(category_indices) < samples_per_test
-            warning('Kategoria "%s" ma tylko %d próbek, ale potrzeba %d dla testu', ...
+            logWarning('Kategoria "%s" ma tylko %d próbek, ale potrzeba %d dla testu', ...
                 labels{cat}, length(category_indices), samples_per_test);
             samples_for_this_cat = length(category_indices);
         else
@@ -86,15 +91,17 @@ if test_ratio > 0
     X_test = X(test_indices, :);
     Y_test = Y(test_indices, :);
     
-    fprintf('\nInformacje o zbiorach danych:\n');
-    fprintf('Liczba próbek treningowych: %d\n', size(X_train, 1));
-    fprintf('Liczba próbek testowych: %d\n', size(X_test, 1));
+    logInfo('Informacje o zbiorach danych:');
+    logInfo('Liczba próbek treningowych: %d', size(X_train, 1));
+    logInfo('Liczba próbek testowych: %d', size(X_test, 1));
     
     % Sprawdzenie reprezentacji kategorii w zbiorze testowym
-    fprintf('\nRozkład kategorii w zbiorze testowym:\n');
-    for cat = 1:length(labels)
-        count = sum(Y_test(:, cat));
-        fprintf('  %s: %d próbek\n', labels{cat}, count);
+    if verbose
+        logDebug('Rozkład kategorii w zbiorze testowym:');
+        for cat = 1:length(labels)
+            count = sum(Y_test(:, cat));
+            logDebug('  %s: %d próbek', labels{cat}, count);
+        end
     end
     
 else
@@ -104,7 +111,7 @@ else
     X_test = [];
     Y_test = [];
     
-    fprintf('\nTrenowanie na wszystkich danych (%d próbek)\n', size(X_train, 1));
+    logInfo('Trenowanie na wszystkich danych (%d próbek)', size(X_train, 1));
 end
 
 % Tworzenie sieci neuronowej
@@ -115,11 +122,11 @@ net.trainParam.goal = goal;
 net.trainParam.min_grad = 1e-6;
 
 % Trenowanie sieci
-fprintf('\nRozpoczynam trenowanie sieci...\n');
+logInfo('Rozpoczynam trenowanie sieci...');
 training_start = tic;
 [net, tr] = train(net, X_train', Y_train');
 training_time = toc(training_start);
-fprintf('Czas trenowania sieci: %.2f sekund (%.2f minut)\n', training_time, training_time/60);
+logSuccess('Czas trenowania sieci: %.2f sekund (%.2f minut)', training_time, training_time/60);
 
 % Inicjalizacja struktury wyników
 results = struct();
@@ -129,7 +136,7 @@ results.network_config = struct('hidden_layers', hidden_layers, 'epochs', epochs
 
 % Testowanie sieci (jeśli są dane testowe)
 if ~isempty(X_test)
-    fprintf('\nTestowanie sieci...\n');
+    logInfo('Testowanie sieci...');
     testing_start = tic;
     Y_pred = net(X_test')';
     [~, predicted_labels] = max(Y_pred, [], 2);
@@ -149,24 +156,25 @@ if ~isempty(X_test)
     results.Y_pred = Y_pred;
     results.Y_test = Y_test;
     
-    fprintf('Czas testowania sieci: %.2f sekund\n', testing_time);
-    fprintf('\nWyniki klasyfikacji:\n');
-    fprintf('Dokładność: %.2f%%\n', accuracy * 100);
+    logInfo('Czas testowania sieci: %.2f sekund', testing_time);
+    logSuccess('Dokładność: %.2f%%', accuracy * 100);
     
     % Szczegółowe statystyki dla każdej kategorii
-    fprintf('\nStatystyki dla poszczególnych kategorii:\n');
-    for i = 1:length(labels)
-        if i <= size(cm, 1) && i <= size(cm, 2) && sum(cm(:,i)) > 0 && sum(cm(i,:)) > 0
-            precision = cm(i,i) / sum(cm(:,i));
-            recall = cm(i,i) / sum(cm(i,:));
-            if (precision + recall) > 0
-                f1_score = 2 * (precision * recall) / (precision + recall);
-            else
-                f1_score = 0;
+    if verbose
+        logDebug('Statystyki dla poszczególnych kategorii:');
+        for i = 1:length(labels)
+            if i <= size(cm, 1) && i <= size(cm, 2) && sum(cm(:,i)) > 0 && sum(cm(i,:)) > 0
+                precision = cm(i,i) / sum(cm(:,i));
+                recall = cm(i,i) / sum(cm(i,:));
+                if (precision + recall) > 0
+                    f1_score = 2 * (precision * recall) / (precision + recall);
+                else
+                    f1_score = 0;
+                end
+                
+                logDebug('Kategoria "%s": Precyzja=%.2f%%, Czułość=%.2f%%, F1=%.2f%%', ...
+                    labels{i}, precision*100, recall*100, f1_score*100);
             end
-            
-            fprintf('Kategoria "%s": Precyzja=%.2f%%, Czułość=%.2f%%, F1=%.2f%%\n', ...
-                labels{i}, precision*100, recall*100, f1_score*100);
         end
     end
     
@@ -175,16 +183,16 @@ if ~isempty(X_test)
         createResultsPlots(results, labels);
     end
 else
-    fprintf('\nBrak danych testowych - pominięto testowanie.\n');
+    logInfo('Brak danych testowych - pominięto testowanie.');
 end
 
 % Zapisanie wyników
 if save_results
     timestamp = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
     filename = sprintf('trained_network_%s.mat', timestamp);
-    
-    save(filename, 'net', 'results', 'labels');
-    fprintf('\nSieć została zapisana do pliku: %s\n', filename);
+    output_path = fullfile('output', 'networks', filename);
+    save(output_path, 'net', 'results', 'labels');
+    logSuccess('Sieć została zapisana do pliku: %s', output_path);
 end
 
 end

@@ -1,7 +1,7 @@
 function handleUserStop(h_main, X, Y, labels, successful_loads, failed_loads, normalize_features_flag)
 % Obsługuje zatrzymanie procesu przez użytkownika
-fprintf('\n🛑 Przetwarzanie zostało zatrzymane przez użytkownika!\n');
-fprintf('📊 Wczytano %d próbek przed zatrzymaniem.\n', successful_loads);
+logInfo('🛑 Przetwarzanie zostało zatrzymane przez użytkownika!');
+logInfo('📊 Wczytano %d próbek przed zatrzymaniem.', successful_loads);
 
 if isvalid(h_main)
     close(h_main);
@@ -19,6 +19,6 @@ if ~isempty(X)
     partial_file_path = fullfile('output', 'preprocessed', data_filename);
     
     save(partial_file_path, 'X', 'Y', 'labels', 'successful_loads', 'failed_loads');
-    fprintf('💾 Częściowe dane zapisane jako: %s\n', partial_file_path);
+    logSuccess('💾 Częściowe dane zapisane jako: %s', partial_file_path);
 end
 end

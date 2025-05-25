@@ -1,13 +1,19 @@
 % =========================================================================
-% INTELLIGENT VOICE IDENTIFICATION SYSTEM
+% INTELLIGENT VOICE IDENTIFICATION SYSTEM - GŁÓWNY SKRYPT URUCHAMIAJĄCY
 % =========================================================================
-% Główny plik startowy
+% Skrypt główny do uruchamiania systemu rozpoznawania głosu
+% 
+% AUTOR: [Twoje dane]
+% DATA: 2025
 % =========================================================================
 
-close all;
 clear all;
+close all;
 clc;
 
+% =========================================================================
+% WYŚWIETLENIE NAGŁÓWKA SYSTEMU
+% =========================================================================
 fprintf('🎵 INTELLIGENT VOICE IDENTIFICATION SYSTEM\n');
 fprintf('==========================================\n');
 
@@ -20,10 +26,27 @@ addpath(genpath('src'));
 fprintf('📁 Dodano ścieżki do kodu źródłowego\n');
 
 % =========================================================================
-% UTWORZENIE KATALOGÓW WYJŚCIOWYCH
+% TWORZENIE STRUKTURY KATALOGÓW
 % =========================================================================
 
-output_dirs = {'output', 'output\networks', 'output\results', 'output\preprocessed'};
+% Lista katalogów wyjściowych do utworzenia
+output_dirs = {
+    'output', 
+    'output\networks', 
+    'output\results', 
+    'output\preprocessed', 
+    'output\logs'
+};
+
+% Lista plików .gitkeep do utworzenia
+gitkeep_files = {
+    'output\networks\.gitkeep',
+    'output\results\.gitkeep',
+    'output\preprocessed\.gitkeep',
+    'output\logs\.gitkeep'
+};
+
+% Tworzenie katalogów jeśli nie istnieją
 for i = 1:length(output_dirs)
     if ~exist(output_dirs{i}, 'dir')
         mkdir(output_dirs{i});
@@ -31,57 +54,66 @@ for i = 1:length(output_dirs)
     end
 end
 
-% Po utworzeniu katalogów dodaj:
-gitkeep_files = {
-    'output\networks\.gitkeep',
-    'output\results\.gitkeep',
-    'output\preprocessed\.gitkeep'
-    };
-
+% Tworzenie plików .gitkeep jeśli nie istnieją
 for i = 1:length(gitkeep_files)
     if ~exist(gitkeep_files{i}, 'file')
         fid = fopen(gitkeep_files{i}, 'w');
-        fclose(fid);
+        if fid ~= -1
+            fclose(fid);
+            fprintf('📄 Utworzono plik: %s\n', gitkeep_files{i});
+        end
     end
 end
 
 % =========================================================================
-% KONFIGURACJA SYSTEMU (PROSTA)
+% INICJALIZACJA SYSTEMU LOGOWANIA
 % =========================================================================
 
-% Parametry audio
-noise_level = 0.1;
-num_samples = 10;
-normalize_features = true;
-
-% Kategorie danych
-use_vowels = true;
-use_complex = true;
-
-fprintf('📋 Konfiguracja systemu:\n');
-fprintf('   🔊 Poziom szumu: %.1f\n', noise_level);
-fprintf('   📝 Próbek na kategorię: %d\n', num_samples);
-fprintf('   🎵 Samogłoski: %s\n', yesno(use_vowels));
-fprintf('   💬 Komendy złożone: %s\n', yesno(use_complex));
-fprintf('   ⚖️ Normalizacja: %s\n', yesno(normalize_features));
+% Wymuszenie inicjalizacji logowania
+logInfo('=== SYSTEM ROZPOZNAWANIA GŁOSU - START ===');
+logInfo('Czas rozpoczęcia: %s', datestr(now));
 
 % =========================================================================
-% URUCHOMIENIE SYSTEMU
+% URUCHOMIENIE GŁÓWNEGO SYSTEMU
 % =========================================================================
+
+fprintf('🚀 Uruchamianie systemu...\n');
+fprintf('\n');
 
 try
-    fprintf('\n🚀 Uruchamianie systemu...\n');
-    
-    % Wywołanie głównej funkcji (z folderu src/core/)
+    % Wywołanie głównej funkcji systemu rozpoznawania głosu
     voiceRecognition();
     
-    fprintf('\n🎉 System zakończył pracę pomyślnie!\n');
+    % Sukces - system zakończył pracę bez błędów
+    logSuccess('🎉 System zakończył pracę pomyślnie!');
     
 catch ME
-    fprintf('\n❌ Błąd podczas wykonywania:\n');
-    fprintf('   📍 Plik: %s\n', ME.stack(1).file);
-    fprintf('   📍 Linia: %d\n', ME.stack(1).line);
-    fprintf('   📍 Komunikat: %s\n', ME.message);
+    % Obsługa błędów
+    logError('❌ Błąd podczas wykonywania:');
+    logError('   📍 Plik: %s', ME.stack(1).file);
+    logError('   📍 Linia: %d', ME.stack(1).line);
+    logError('   📍 Komunikat: %s', ME.message);
+    
+    % Wyświetlenie dodatkowych informacji o błędzie
+    if length(ME.stack) > 1
+        logError('📚 Stos wywołań:');
+        for i = 1:min(3, length(ME.stack))
+            logError('   %d. %s (linia %d)', i, ME.stack(i).name, ME.stack(i).line);
+        end
+    end
+end
+
+% =========================================================================
+% FINALIZACJA
+% =========================================================================
+
+logInfo('👋 Koniec programu');
+
+% Zamknięcie pliku log
+try
+    closeLog();
+catch
+    % Jeśli zamknięcie loga nie powiedzie się, nie ma problemu
 end
 
 fprintf('\n👋 Koniec programu\n');

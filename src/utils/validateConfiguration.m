@@ -9,16 +9,16 @@ compatible = true;
 
 if isfield(loaded_data, 'use_vowels') && isfield(loaded_data, 'use_complex')
     if loaded_data.use_vowels ~= use_vowels || loaded_data.use_complex ~= use_complex
-        fprintf('⚠️ Wykryto niezgodność konfiguracji:\n');
-        fprintf('   📁 Plik: samogłoski=%s, pary słów=%s\n', ...
+        logWarning('⚠️ Wykryto niezgodność konfiguracji:');
+        logInfo('   📁 Plik: samogłoski=%s, pary słów=%s', ...
             yesno(loaded_data.use_vowels), yesno(loaded_data.use_complex));
-        fprintf('   🔄 Aktualna: samogłoski=%s, pary słów=%s\n', ...
+        logInfo('   🔄 Aktualna: samogłoski=%s, pary słów=%s', ...
             yesno(use_vowels), yesno(use_complex));
-        fprintf('   ⚡ Przetwarzanie danych od nowa...\n');
+        logInfo('   ⚡ Przetwarzanie danych od nowa...');
         compatible = false;
     end
 else
-    fprintf('⚠️ Brak informacji o konfiguracji w pliku. Przetwarzanie od nowa...\n');
+    logInfo('⚠️ Brak informacji o konfiguracji w pliku. Przetwarzanie od nowa...\n');
     compatible = false;
 end
 

@@ -17,6 +17,6 @@ save(output_path, 'X', 'Y', 'labels', 'successful_loads', 'failed_loads', ...
     'normalize_flag', 'normalization_status', 'noise_level', 'num_samples', ...
     'use_vowels', 'use_complex', 'creation_time', 'matlab_version');
 
-fprintf('💾 Zapisano dane do: %s\n', output_path);
+logInfo('💾 Zapisano dane do: %s\n', output_path);
 
 end

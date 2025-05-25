@@ -1,4 +1,4 @@
-function [best_params] = optimizeAdaptiveFilterParams(y, noise_level)
+function best_params = optimizeAdaptiveFilterParams(y, noise_level)
 % =========================================================================
 % OPTYMALIZACJA PARAMETRÓW FILTRÓW ADAPTACYJNYCH
 % =========================================================================
@@ -24,6 +24,7 @@ function [best_params] = optimizeAdaptiveFilterParams(y, noise_level)
 % =========================================================================
 
 N = length(y);           % Długość sygnału wejściowego
+logDebug('Optymalizacja filtrów: długość sygnału=%d próbek', N);
 
 % Zakresy parametrów do przeszukiwania dla optymalizacji
 M_range = [4, 8, 16, 20, 32, 50, 100];    % Rząd filtru (liczba współczynników)
@@ -72,7 +73,7 @@ best_params = struct();
 % =========================================================================
 
 %fprintf('🔧 Optymalizacja parametrów filtru LMS...\n');
-too_slow_lms = false;    % Flaga sygnalizująca przekroczenie limitu czasu
+too_slow_lms = false;    % Flaga sygnalizująca przekrocenie limitu czasu
 
 for M_test = M_range
     % Sprawdzenie czy poprzednie testy były zbyt wolne
@@ -81,52 +82,58 @@ for M_test = M_range
     end
     
     for mi_test = mi_range
-        % Inicjalizacja struktury filtru LMS
-        w = zeros(M_test, 1);           % Wektor współczynników filtru
-        x_buff = zeros(M_test, 1);      % Bufor danych wejściowych
-        y_filtered = zeros(N, 1);       % Sygnał wyjściowy
-        
-        % Pomiar czasu wykonania filtracji
-        tic;
-        
-        % Główna pętla filtracji LMS
-        for n = M_test:N
-            % Aktualizacja bufora danych wejściowych (okno przesuwne)
-            x_buff = [noisy_signal(n); x_buff(1:M_test-1)];
+        try
+            % Inicjalizacja struktury filtru LMS
+            w = zeros(M_test, 1);
+            x_buff = zeros(M_test, 1);
+            y_filtered = zeros(N, 1);
             
-            % Obliczenie wyjścia filtru (konwolucja z współczynnikami)
-            y_filtered(n) = w' * x_buff;
+            % Pomiar czasu wykonania filtracji
+            tic;
             
-            % Obliczenie błędu predykcji
-            e = y(n) - y_filtered(n);
+            % Główna pętla filtracji LMS
+            for n = M_test:N
+                % Aktualizacja bufora danych wejściowych (okno przesuwne)
+                x_buff = [noisy_signal(n); x_buff(1:M_test-1)];
+                
+                % Obliczenie wyjścia filtru (konwolucja z współczynnikami)
+                y_filtered(n) = w' * x_buff;
+                
+                % Obliczenie błędu predykcji
+                e = y(n) - y_filtered(n);
+                
+                % Aktualizacja współczynników filtru (algorytm LMS)
+                w = w + mi_test * e * x_buff;
+            end
             
-            % Aktualizacja współczynników filtru (algorytm LMS)
-            w = w + mi_test * e * x_buff;
-        end
-        
-        execution_time = toc;
-        
-        % Sprawdzenie kryterium czasowego
-        if execution_time > max_acceptable_time
-            too_slow_lms = true;
-            break;
-        end
-        
-        % Obliczenie funkcji oceny (im mniejsza, tym lepsza)
-        mse_test = mean((y - y_filtered).^2);
-        order_penalty = M_test / max(M_range);           % Kara za złożoność
-        time_penalty = min(execution_time, 1.0);         % Kara za czas wykonania
-        
-        score = mse_weight * (mse_test/mse_noisy) + ...
-            order_weight * order_penalty + ...
-            time_weight * time_penalty;
-        
-        % Sprawdzenie czy to najlepszy wynik jak dotąd
-        if score < best_score_lms
-            best_score_lms = score;
-            best_params.M_lms = M_test;
-            best_params.mi = mi_test;
-            best_params.time_lms = execution_time;
+            execution_time = toc;
+            
+            % Sprawdzenie kryterium czasowego
+            if execution_time > max_acceptable_time
+                too_slow_lms = true;
+                break;
+            end
+            
+            % Obliczenie funkcji oceny (im mniejsza, tym lepsza)
+            mse_test = mean((y - y_filtered).^2);
+            order_penalty = M_test / max(M_range);           % Kara za złożoność
+            time_penalty = min(execution_time, 1.0);         % Kara za czas wykonania
+            
+            score = mse_weight * (mse_test/mse_noisy) + ...
+                order_weight * order_penalty + ...
+                time_weight * time_penalty;
+            
+            % Sprawdzenie czy to najlepszy wynik jak dotąd
+            if score < best_score_lms
+                best_score_lms = score;
+                best_params.M_lms = M_test;
+                best_params.mi = mi_test;
+                best_params.time_lms = execution_time;
+            end
+        catch ME
+            logError('Błąd inicjalizacji/wykonania filtru LMS (M=%d, mi=%.3f): %s', ...
+                M_test, mi_test, ME.message);
+            continue; % Przejdź do następnej kombinacji parametrów
         end
     end
 end
@@ -145,53 +152,60 @@ for M_test = M_range
     
     for alfa_test = alfa_range
         for beta_test = beta_range
-            % Inicjalizacja struktury filtru NLMS
-            w = zeros(M_test, 1);
-            x_buff = zeros(M_test, 1);
-            y_filtered = zeros(N, 1);
-            
-            tic;
-            
-            % Główna pętla filtracji NLMS
-            for n = M_test:N
-                % Aktualizacja bufora danych
-                x_buff = [noisy_signal(n); x_buff(1:M_test-1)];
+            try
+                % Inicjalizacja struktury filtru NLMS
+                w = zeros(M_test, 1);
+                x_buff = zeros(M_test, 1);
+                y_filtered = zeros(N, 1);
                 
-                % Obliczenie wyjścia filtru
-                y_filtered(n) = w' * x_buff;
+                % Pomiar czasu wykonania filtracji
+                tic;
                 
-                % Obliczenie błędu
-                e = y(n) - y_filtered(n);
+                % Główna pętla filtracji NLMS
+                for n = M_test:N
+                    % Aktualizacja bufora danych
+                    x_buff = [noisy_signal(n); x_buff(1:M_test-1)];
+                    
+                    % Obliczenie wyjścia filtru
+                    y_filtered(n) = w' * x_buff;
+                    
+                    % Obliczenie błędu
+                    e = y(n) - y_filtered(n);
+                    
+                    % Aktualizacja współczynników z normalizacją (algorytm NLMS)
+                    normalization_factor = beta_test + x_buff' * x_buff;
+                    w = w + (alfa_test / normalization_factor) * e * x_buff;
+                end
                 
-                % Aktualizacja współczynników z normalizacją (algorytm NLMS)
-                normalization_factor = beta_test + x_buff' * x_buff;
-                w = w + (alfa_test / normalization_factor) * e * x_buff;
-            end
-            
-            execution_time = toc;
-            
-            % Sprawdzenie kryterium czasowego
-            if execution_time > max_acceptable_time
-                too_slow_nlms = true;
-                break;
-            end
-            
-            % Obliczenie funkcji oceny
-            mse_test = mean((y - y_filtered).^2);
-            order_penalty = M_test / max(M_range);
-            time_penalty = min(execution_time, 1.0);
-            
-            score = mse_weight * (mse_test/mse_noisy) + ...
-                order_weight * order_penalty + ...
-                time_weight * time_penalty;
-            
-            % Aktualizacja najlepszego wyniku
-            if score < best_score_nlms
-                best_score_nlms = score;
-                best_params.M_nlms = M_test;
-                best_params.alfa = alfa_test;
-                best_params.beta = beta_test;
-                best_params.time_nlms = execution_time;
+                execution_time = toc;
+                
+                % Sprawdzenie kryterium czasowego
+                if execution_time > max_acceptable_time
+                    too_slow_nlms = true;
+                    break;
+                end
+                
+                % Obliczenie funkcji oceny
+                mse_test = mean((y - y_filtered).^2);
+                order_penalty = M_test / max(M_range);
+                time_penalty = min(execution_time, 1.0);
+                
+                score = mse_weight * (mse_test/mse_noisy) + ...
+                    order_weight * order_penalty + ...
+                    time_weight * time_penalty;
+                
+                % Aktualizacja najlepszego wyniku
+                if score < best_score_nlms
+                    best_score_nlms = score;
+                    best_params.M_nlms = M_test;
+                    best_params.alfa = alfa_test;
+                    best_params.beta = beta_test;
+                    best_params.time_nlms = execution_time;
+                end
+            catch ME
+                logError('Błąd inicjalizacji/wykonania filtru NLMS (M=%d, alfa=%.2f, beta=%.1e): %s', ...
+                    M_test, alfa_test, beta_test, ME.message);
+                continue; % Przejdź do następnej kombinacji
             end
         end
         
@@ -209,6 +223,8 @@ end
 too_slow_rls = false;
 
 for M_test = M_range
+    logDebug('Testowanie filtru RLS: M=%d', M_test);
+    
     if too_slow_rls
         break;
     end
@@ -221,7 +237,12 @@ for M_test = M_range
         for delta_test = delta_range
             % Inicjalizacja struktury filtru RLS
             w = zeros(M_test, 1);                    % Wektor współczynników
-            P = (1/delta_test) * eye(M_test);        % Macierz kowariancji odwrotna
+            try
+                P = (1/delta_test) * eye(M_test);        % Macierz kowariancji odwrotna
+            catch ME
+                logError('Błąd inicjalizacji filtru RLS (M=%d): %s', M_test, ME.message);
+                continue; % Przejdź do następnego M_test
+            end
             x_buff = zeros(M_test, 1);               % Bufor danych
             y_filtered = zeros(N, 1);                % Sygnał wyjściowy
             

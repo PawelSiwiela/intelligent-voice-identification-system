@@ -1,15 +1,14 @@
+function voiceRecognition()
 % =========================================================================
 % SYSTEM ROZPOZNAWANIA GŁOSU - GŁÓWNY SKRYPT
-% =========================================================================
-% Autor: [Twoje imię]
-% Data: [Data utworzenia]
-% Opis: Główny skrypt systemu rozpoznawania głosu wykorzystujący sieci
-%       neuronowe do klasyfikacji próbek audio (samogłoski i komendy złożone)
 % =========================================================================
 
 close all;
 clear all;
 clc;
+
+% Rozpoczęcie pomiaru całkowitego czasu
+total_start = tic;
 
 % =========================================================================
 % KONFIGURACJA PARAMETRÓW SYSTEMU
@@ -26,23 +25,23 @@ use_complex = true;        % Czy wczytywać komendy złożone (pary słów)
 % Parametry normalizacji
 normalize_features = true; % Czy normalizować cechy przed trenowaniem
 
-fprintf('🎵 SYSTEM ROZPOZNAWANIA GŁOSU - ROZPOCZĘCIE\n');
-fprintf('==========================================\n');
-total_start = tic;
+logInfo('🎵 SYSTEM ROZPOZNAWANIA GŁOSU - ROZPOCZĘCIE');
+logInfo('==========================================');
+logInfo(''); % Pusta linia
 
 % =========================================================================
 % KROK 1: WCZYTYWANIE I PRZETWARZANIE DANYCH AUDIO
 % =========================================================================
-fprintf('\n=== KROK 1: Wczytywanie danych audio ===\n');
+logInfo('=== KROK 1: Wczytywanie danych audio ===');
 loading_start = tic;
 
 % Wyświetlenie aktualnej konfiguracji
-fprintf('📋 Konfiguracja systemu:\n');
-fprintf('   • Samogłoski: %s\n', yesno(use_vowels));
-fprintf('   • Komendy złożone: %s\n', yesno(use_complex));
-fprintf('   • Próbek na kategorię: %d\n', num_samples);
-fprintf('   • Poziom szumu: %.1f\n', noise_level);
-fprintf('   • Normalizacja cech: %s\n', yesno(normalize_features));
+logInfo('📋 Konfiguracja systemu:');
+logInfo('   • Samogłoski: %s', yesno(use_vowels));
+logInfo('   • Komendy złożone: %s', yesno(use_complex));
+logInfo('   • Próbek na kategorię: %d', num_samples);
+logInfo('   • Poziom szumu: %.1f', noise_level);
+logInfo('   • Normalizacja cech: %s', yesno(normalize_features));
 
 % Generowanie nazwy pliku na podstawie aktualnej konfiguracji
 config_string = generateConfigString(use_vowels, use_complex);
@@ -58,17 +57,17 @@ end
 data_exists = exist(data_file, 'file');
 
 if data_exists
-    fprintf('\n✅ Znaleziono plik z danymi: %s\n', data_file);
+    logSuccess('✅ Znaleziono plik z danymi: %s', data_file);
     load_existing = true;
 else
-    fprintf('\n⚠️ Nie znaleziono pliku z danymi: %s\n', data_file);
-    fprintf('📦 Rozpoczynam przetwarzanie danych od nowa...\n');
+    logWarning('⚠️ Nie znaleziono pliku z danymi: %s', data_file);
+    logInfo('📦 Rozpoczynam przetwarzanie danych od nowa...\n');
     load_existing = false;
 end
 
 % Wczytanie istniejących danych i sprawdzenie kompatybilności
 if load_existing
-    fprintf('📂 Wczytywanie zapisanych danych z %s...\n', data_file);
+    logInfo('📂 Wczytywanie zapisanych danych z %s...', data_file);
     
     loaded_data = load(data_file);
     
@@ -92,7 +91,7 @@ end
 
 % Przetwarzanie danych od nowa (jeśli potrzeba)
 if ~load_existing
-    fprintf('\n🔄 Przetwarzanie danych od nowa...\n');
+    logInfo('🔄 Przetwarzanie danych od nowa...');
     
     try
         [X, Y, labels, successful_loads, failed_loads] = loadAudioData(...
@@ -100,15 +99,15 @@ if ~load_existing
         
         % Sprawdzenie czy dane zostały wczytane pomyślnie
         if isempty(X)
-            fprintf('❌ Nie udało się wczytać danych lub proces został zatrzymany.\n');
+            logError('❌ Nie udało się wczytać danych lub proces został zatrzymany.');
             return;
         end
         
-        fprintf('✅ Przetwarzanie zakończone pomyślnie!\n');
+        logSuccess('✅ Przetwarzanie zakończone pomyślnie!');
         
     catch ME
         if contains(ME.message, 'zatrzymane')
-            fprintf('🛑 Proces został zatrzymany przez użytkownika.\n');
+            logWarning('🛑 Proces został zatrzymany przez użytkownika.');
             return;
         else
             rethrow(ME);
@@ -123,15 +122,16 @@ displayLoadingSummary(loading_time, successful_loads, failed_loads);
 % =========================================================================
 % KROK 2: TRENOWANIE SIECI NEURONOWEJ
 % =========================================================================
-fprintf('\n=== KROK 2: Trenowanie sieci neuronowej ===\n');
+logInfo('=== KROK 2: Trenowanie sieci neuronowej ===');
 
 [net, results] = trainNeuralNetwork(X, Y, labels, ...
-    'HiddenLayers', [15 8], ...    % Architektura sieci: 15 neuronów w 1. warstwie, 8 w 2.
-    'Epochs', 1500, ...            % Maksymalna liczba epok trenowania
-    'Goal', 1e-7, ...              % Docelowy błąd trenowania
+    'HiddenLayers', [15 8], ...      % Architektura sieci: 15 neuronów w 1. warstwie, 8 w 2.
+    'Epochs', 1500, ...              % Maksymalna liczba epok trenowania
+    'Goal', 1e-7, ...                % Docelowy błąd trenowania
     'TestSamplesPerCategory', 2, ... % Liczba próbek testowych na kategorię
-    'SaveResults', true, ...        % Czy zapisać wyniki do pliku
-    'ShowPlots', true);             % Czy wyświetlić wykresy
+    'SaveResults', true, ...         % Czy zapisać wyniki do pliku
+    'ShowPlots', true, ...           % Czy wyświetlić wykresy
+    'Verbose', false);               % Czy wyświetlać szczegółowe informacje
 
 % =========================================================================
 % KROK 3: PODSUMOWANIE CAŁEGO PROCESU

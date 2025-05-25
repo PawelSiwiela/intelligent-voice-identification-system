@@ -4,40 +4,41 @@ function displayFinalSummary(total_start, loading_time, results, ...
 
 total_time = toc(total_start);
 
-fprintf('\n🎯 PODSUMOWANIE KOŃCOWE\n');
-fprintf('=======================\n');
-fprintf('⏱️ Całkowity czas wykonania: %.2f sekund (%.2f minut)\n', ...
+logInfo('🎯 PODSUMOWANIE KOŃCOWE');
+logInfo('=======================');
+logInfo('⏱️ Całkowity czas wykonania: %.2f sekund (%.2f minut)', ...
     total_time, total_time/60);
-fprintf('   📦 Wczytywanie danych: %.2f sekund (%.1f%%)\n', ...
+logInfo('   📦 Wczytywanie danych: %.2f sekund (%.1f%%)', ...
     loading_time, 100*loading_time/total_time);
 
 if isfield(results, 'training_time')
-    fprintf('   🧠 Trenowanie sieci: %.2f sekund (%.1f%%)\n', ...
+    logInfo('   🧠 Trenowanie sieci: %.2f sekund (%.1f%%)', ...
         results.training_time, 100*results.training_time/total_time);
 end
 
 if isfield(results, 'testing_time')
-    fprintf('   🧪 Testowanie sieci: %.2f sekund (%.1f%%)\n', ...
+    logInfo('   🧪 Testowanie sieci: %.2f sekund (%.1f%%)\n', ...
         results.testing_time, 100*results.testing_time/total_time);
 end
 
 if isfield(results, 'accuracy')
-    fprintf('\n🎯 Osiągnięta dokładność: %.2f%%\n', results.accuracy * 100);
+    logSuccess('🎯 Osiągnięta dokładność: %.2f%%', results.accuracy * 100);
 end
 
-fprintf('\n📋 SZCZEGÓŁY KONFIGURACJI\n');
-fprintf('=========================\n');
-fprintf('🔊 Poziom szumu: %.1f\n', noise_level);
-fprintf('📝 Próbek na kategorię: %d\n', num_samples);
-fprintf('🎵 Samogłoski: %s\n', yesno(use_vowels));
-fprintf('💬 Komendy złożone: %s\n', yesno(use_complex));
-fprintf('⚖️ Normalizacja cech: %s\n', yesno(normalize_features));
+logInfo(''); % Pusta linia
+logInfo('📋 SZCZEGÓŁY KONFIGURACJI');
+logInfo('=========================');
+logInfo('🔊 Poziom szumu: %.1f\n', noise_level);
+logInfo('📝 Próbek na kategorię: %d\n', num_samples);
+logInfo('🎵 Samogłoski: %s\n', yesno(use_vowels));
+logInfo('💬 Komendy złożone: %s\n', yesno(use_complex));
+logInfo('⚖️ Normalizacja cech: %s\n', yesno(normalize_features));
 
 if exist(data_file, 'file')
-    fprintf('💾 Źródło danych: plik %s\n', data_file);
+    logInfo('💾 Źródło danych: plik %s\n', data_file);
 else
-    fprintf('💾 Źródło danych: przetwarzanie na żywo\n');
+    logInfo('💾 Źródło danych: przetwarzanie na żywo\n');
 end
 
-fprintf('\n🎉 System rozpoznawania głosu został pomyślnie uruchomiony!\n');
+logInfo('🎉 System rozpoznawania głosu został pomyślnie uruchomiony!');
 end

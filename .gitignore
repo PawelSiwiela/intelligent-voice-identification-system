@@ -45,7 +45,12 @@ output/preprocessed/*.mat
 output/networks/*.mat
 output/results/*
 
+# Log files
+output/logs/*.log
+output/logs/*.txt
+
 # Keep empty directories
 !output/preprocessed/.gitkeep
 !output/networks/.gitkeep  
 !output/results/.gitkeep
+!output/logs/.gitkeep
