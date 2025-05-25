@@ -1,42 +1,53 @@
 function [X, Y, labels, successful_loads, failed_loads] = loadAudioData(noise_level, num_samples, use_vowels, use_complex, normalize_features_flag)
-% Funkcja do wczytywania i przetwarzania danych audio
+% =========================================================================
+% WCZYTYWANIE I PRZETWARZANIE DANYCH AUDIO
+% =========================================================================
+% Funkcja do wczytywania próbek audio, ekstrakcji cech i przygotowania
+% danych do trenowania sieci neuronowej
 %
-% Argumenty:
-%   noise_level - poziom szumu (0-1)
-%   num_samples - liczba próbek na kategorię
-%   use_vowels - czy wczytywać samogłoski
-%   use_complex - czy wczytywać komendy złożone
-%   normalize_features_flag - czy normalizować cechy (domyślnie true)
+% ARGUMENTY:
+%   noise_level - poziom szumu dodawanego do sygnału (0.0-1.0)
+%   num_samples - liczba próbek audio na każdą kategorię
+%   use_vowels - flaga: czy wczytywać samogłoski (true/false)
+%   use_complex - flaga: czy wczytywać komendy złożone (true/false)
+%   normalize_features_flag - flaga: czy normalizować cechy (domyślnie true)
 %
-% Zwraca:
-%   X - macierz cech
-%   Y - macierz etykiet (one-hot encoding)
-%   labels - nazwy kategorii
-%   successful_loads - liczba udanych wczytań
-%   failed_loads - liczba nieudanych wczytań
+% ZWRACA:
+%   X - macierz cech [próbki × cechy]
+%   Y - macierz etykiet one-hot [próbki × kategorie]
+%   labels - nazwy kategorii (cell array)
+%   successful_loads - liczba pomyślnie wczytanych próbek
+%   failed_loads - liczba próbek, których nie udało się wczytać
+%
+% STRUKTURA FOLDERÓW:
+%   data/simple/[samogłoska]/[prędkość]/Dźwięk X.wav
+%   data/complex/[kategoria]/[komenda]/[prędkość]/Dźwięk X.wav
+% =========================================================================
 
-% Sprawdzenie czy podano parametr normalizacji
+% Sprawdzenie argumentów wejściowych
 if nargin < 5
-    normalize_features_flag = true;  % Domyślnie normalizuj
+    normalize_features_flag = true; % Domyślnie normalizuj cechy
 end
 
-% Samogłoski - podstawowe 3 samogłoski
-vowels_base = {'a', 'e', 'i'};
+% =========================================================================
+% DEFINICJA KATEGORII DANYCH
+% =========================================================================
 
-% Dodanie wszystkich kombinacji samogłosek z "normalnie" i "szybko"
-vowels = {};
+% Samogłoski - podstawowe 3 samogłoski z różnymi prędkościami
+vowels_base = {'a', 'e', 'i'};
 vowel_speed_types = {'normalnie', 'szybko'};
 
+% Generowanie wszystkich kombinacji samogłosek z prędkościami
+vowels = {};
 for i = 1:length(vowels_base)
     for j = 1:length(vowel_speed_types)
         full_vowel = sprintf('%s/%s', vowels_base{i}, vowel_speed_types{j});
         vowels{end+1} = full_vowel;
     end
 end
+num_vowels = length(vowels); % Będzie 6 (3 samogłoski × 2 prędkości)
 
-num_vowels = length(vowels);  % Teraz będzie 6 (3 samogłoski × 2 prędkości)
-
-% Pary słów - wszystkie 8 podstawowych komend
+% Komendy złożone - pary słów z różnymi kategoriami
 complex_commands = {
     'Drzwi/Otwórz drzwi', 'Drzwi/Zamknij drzwi', ...
     'Odbiornik/Włącz odbiornik', 'Odbiornik/Wyłącz odbiornik', ...
@@ -44,7 +55,7 @@ complex_commands = {
     'Temperatura/Zmniejsz temperaturę', 'Temperatura/Zwiększ temperaturę'
     };
 
-% Dodanie wszystkich kombinacji komend z "normalnie" i "szybko"
+% Generowanie wszystkich kombinacji komend z prędkościami
 all_commands = {};
 speed_types = {'normalnie', 'szybko'};
 
@@ -55,10 +66,13 @@ for i = 1:length(complex_commands)
         all_commands{end+1} = full_command;
     end
 end
+num_commands = length(all_commands); % Będzie 16 (8 komend × 2 prędkości)
 
-num_commands = length(all_commands);  % Teraz będzie 16
+% =========================================================================
+% PRZYGOTOWANIE STRUKTURY DANYCH
+% =========================================================================
 
-% Określenie całkowitej liczby kategorii
+% Określenie kategorii do wczytania
 if use_vowels && use_complex
     total_categories = num_vowels + num_commands;
     labels = [vowels, all_commands];
@@ -70,90 +84,82 @@ else
     labels = all_commands;
 end
 
-% Inicjalizacja macierzy cech
+% Inicjalizacja macierzy wynikowych
 X = [];  % Macierz cech
-Y = [];  % Etykiety (one-hot encoding)
+Y = [];  % Macierz etykiet (one-hot encoding)
 
-% Sprawdzenie istnienia folderów
+% Określenie ścieżek do folderów z danymi
 current_file_path = mfilename('fullpath');
 [current_dir, ~, ~] = fileparts(current_file_path);
-simple_path = fullfile(current_dir, 'data', 'simple');
-complex_path = fullfile(current_dir, 'data', 'complex');
+simple_path = fullfile(current_dir, 'data', 'simple');   % Ścieżka do samogłosek
+complex_path = fullfile(current_dir, 'data', 'complex'); % Ścieżka do komend
 
-% Liczniki udanych wczytań
+% Inicjalizacja liczników
 successful_loads = 0;
 failed_loads = 0;
-sample_count = 0;  % Inicjalizacja licznika próbek
+sample_count = 0;
 
-% Utworzenie głównego paska postępu z lepszymi wymiarami
+% =========================================================================
+% INICJALIZACJA INTERFEJSU UŻYTKOWNIKA
+% =========================================================================
+
+% Obliczenie całkowitej liczby próbek do przetworzenia
 total_samples = ((use_vowels * num_vowels) + (use_complex * num_commands)) * num_samples;
 expected_categories = (use_vowels * num_vowels) + (use_complex * num_commands);
 
+% Utworzenie okna postępu
 h_main = createProgressWindow(total_samples, expected_categories);
 
-% Wczytanie samogłosek
+% =========================================================================
+% WCZYTYWANIE SAMOGŁOSEK
+% =========================================================================
+
 if use_vowels
+    % Sprawdzenie istnienia folderu z samogłoskami
     if ~exist(simple_path, 'dir')
         error('Folder z samogłoskami nie został znaleziony! Ścieżka: %s', simple_path);
     end
     
+    % Przetwarzanie każdej samogłoski
     for v = 1:num_vowels
-        % Parsowanie nazwy samogłoski z prędkością
+        % Parsowanie nazwy samogłoski i prędkości
         vowel_parts = strsplit(vowels{v}, '/');
-        vowel_base = vowel_parts{1};
-        vowel_speed = vowel_parts{2};
+        vowel_base = vowel_parts{1};    % np. 'a'
+        vowel_speed = vowel_parts{2};   % np. 'normalnie'
         
+        % Tworzenie ścieżki do folderu z próbkami
         vowel_path = fullfile(simple_path, vowel_base, vowel_speed);
         
-        %fprintf('Przetwarzanie ścieżki samogłoski: %s\n', vowel_path);
-        
+        % Sprawdzenie istnienia folderu
         if ~exist(vowel_path, 'dir')
             warning('Folder "%s" nie istnieje. Pomijam samogłoskę %s.', vowel_path, vowels{v});
             continue;
         end
         
+        % Przetwarzanie próbek dla danej samogłoski
         for i = 1:num_samples
-            % Aktualizacja paska postępu z sprawdzeniem zatrzymania
+            % Aktualizacja paska postępu i sprawdzenie zatrzymania
             sample_count = sample_count + 1;
             category_name = strrep(vowels{v}, '/', ' → ');
             stop_requested = updateProgress(h_main, sample_count, total_samples, ...
                 category_name, i, num_samples, successful_loads, failed_loads);
             
-            % SPRAWDZENIE ZATRZYMANIA
+            % Sprawdzenie czy użytkownik zażądał zatrzymania
             if stop_requested
-                fprintf('\n🛑 Przetwarzanie zostało zatrzymane przez użytkownika!\n');
-                fprintf('Wczytano %d próbek przed zatrzymaniem.\n', successful_loads);
-                
-                if isvalid(h_main)
-                    close(h_main);
-                end
-                
-                % Zwróć to co już się udało wczytać (jeśli coś jest)
-                if ~isempty(X)
-                    config_string = 'partial'; % Oznacz jako niepełne
-                    if normalize_features_flag
-                        data_filename = sprintf('loaded_audio_data_%s_normalized_PARTIAL.mat', config_string);
-                    else
-                        data_filename = sprintf('loaded_audio_data_%s_raw_PARTIAL.mat', config_string);
-                    end
-                    
-                    save(data_filename, 'X', 'Y', 'labels', 'successful_loads', 'failed_loads');
-                    fprintf('Częściowe dane zapisane jako: %s\n', data_filename);
-                end
-                
-                return; % Wyjście z funkcji
+                handleUserStop(h_main, X, Y, labels, successful_loads, failed_loads, normalize_features_flag);
+                return;
             end
             
-            % Pełna ścieżka do pliku
+            % Ścieżka do konkretnego pliku audio
             file_path = fullfile(vowel_path, sprintf('Dźwięk %d.wav', i));
             
+            % Przetwarzanie pliku audio
             try
-                [features, feature_names] = preprocessAudio(file_path, noise_level);
+                [features, ~] = preprocessAudio(file_path, noise_level);
                 
-                % Sprawdzenie wymiarów przed konkatenacją
+                % Sprawdzenie zgodności wymiarów cech
                 if isempty(X)
                     X = features;
-                    %fprintf('Inicjalizacja X z rozmiarem: %d cech\n', length(features));
                 else
                     if length(features) ~= size(X, 2)
                         warning('Niezgodność wymiarów! Oczekiwano %d cech, otrzymano %d dla pliku %s', ...
@@ -163,7 +169,7 @@ if use_vowels
                     X = [X; features];
                 end
                 
-                % Sprawdzenie indeksu przed utworzeniem etykiety
+                % Tworzenie etykiety one-hot dla samogłoski
                 if v > total_categories
                     error('Błąd indeksowania: próba dostępu do indeksu %d gdy total_categories = %d', ...
                         v, total_categories);
@@ -182,67 +188,54 @@ if use_vowels
     end
 end
 
-% Wczytanie par słów
+% =========================================================================
+% WCZYTYWANIE KOMEND ZŁOŻONYCH
+% =========================================================================
+
 if use_complex
+    % Sprawdzenie istnienia folderu z komendami złożonymi
     if ~exist(complex_path, 'dir')
         error('Folder z komendami złożonymi nie został znaleziony! Ścieżka: %s', complex_path);
     end
     
+    % Przetwarzanie każdej komendy
     for c = 1:num_commands
-        % Używamy all_commands zamiast complex_commands
+        % Parsowanie struktury komendy (kategoria/komenda/prędkość)
         command_parts = strsplit(all_commands{c}, '/');
-        % Budujemy ścieżkę używając wszystkich części z all_commands
+        
+        % Tworzenie ścieżki do folderu z próbkami
         command_path = fullfile(complex_path, command_parts{1}, command_parts{2}, command_parts{3});
         
-        % fprintf('Przetwarzanie ścieżki: %s\n', command_path);
-        
+        % Sprawdzenie istnienia folderu
         if ~exist(command_path, 'dir')
             warning('Folder "%s" nie istnieje. Pomijam komendę %s.', command_path, all_commands{c});
             continue;
         end
         
+        % Przetwarzanie próbek dla danej komendy
         for i = 1:num_samples
-            % Aktualizacja paska postępu z sprawdzeniem zatrzymania
+            % Aktualizacja paska postępu i sprawdzenie zatrzymania
             sample_count = sample_count + 1;
             category_name = strrep(all_commands{c}, '/', ' → ');
             stop_requested = updateProgress(h_main, sample_count, total_samples, ...
                 category_name, i, num_samples, successful_loads, failed_loads);
             
-            % SPRAWDZENIE ZATRZYMANIA
+            % Sprawdzenie czy użytkownik zażądał zatrzymania
             if stop_requested
-                fprintf('\n🛑 Przetwarzanie zostało zatrzymane przez użytkownika!\n');
-                fprintf('Wczytano %d próbek przed zatrzymaniem.\n', successful_loads);
-                
-                if isvalid(h_main)
-                    close(h_main);
-                end
-                
-                % Zwróć to co już się udało wczytać
-                if ~isempty(X)
-                    config_string = 'partial';
-                    if normalize_features_flag
-                        data_filename = sprintf('loaded_audio_data_%s_normalized_PARTIAL.mat', config_string);
-                    else
-                        data_filename = sprintf('loaded_audio_data_%s_raw_PARTIAL.mat', config_string);
-                    end
-                    
-                    save(data_filename, 'X', 'Y', 'labels', 'successful_loads', 'failed_loads');
-                    fprintf('Częściowe dane zapisane jako: %s\n', data_filename);
-                end
-                
+                handleUserStop(h_main, X, Y, labels, successful_loads, failed_loads, normalize_features_flag);
                 return;
             end
             
-            % Pełna ścieżka do pliku
+            % Ścieżka do konkretnego pliku audio
             file_path = fullfile(command_path, sprintf('Dźwięk %d.wav', i));
             
+            % Przetwarzanie pliku audio
             try
-                [features, feature_names] = preprocessAudio(file_path, noise_level);
+                [features, ~] = preprocessAudio(file_path, noise_level);
                 
-                % Sprawdzenie wymiarów przed konkatenacją
+                % Sprawdzenie zgodności wymiarów cech
                 if isempty(X)
                     X = features;
-                    fprintf('Inicjalizacja X z rozmiarem: %d cech\n', length(features));
                 else
                     if length(features) ~= size(X, 2)
                         warning('Niezgodność wymiarów! Oczekiwano %d cech, otrzymano %d dla pliku %s', ...
@@ -252,19 +245,20 @@ if use_complex
                     X = [X; features];
                 end
                 
-                % POPRAWKA: Użycie właściwego indeksu w zależności od tego, czy używamy samogłosek
+                % Obliczenie indeksu etykiety dla komendy
                 if use_vowels
-                    label_index = num_vowels + c;
+                    label_index = num_vowels + c; % Dodaj offset dla samogłosek
                 else
-                    label_index = c;  % Bez dodawania num_vowels gdy nie używamy samogłosek
+                    label_index = c; % Bezpośredni indeks gdy brak samogłosek
                 end
                 
-                % Sprawdzenie indeksu przed utworzeniem etykiety
+                % Sprawdzenie poprawności indeksu
                 if label_index > total_categories
                     error('Błąd indeksowania: próba dostępu do indeksu %d gdy total_categories = %d', ...
                         label_index, total_categories);
                 end
                 
+                % Tworzenie etykiety one-hot dla komendy
                 label = zeros(1, total_categories);
                 label(label_index) = 1;
                 Y = [Y; label];
@@ -278,67 +272,49 @@ if use_complex
     end
 end
 
+% =========================================================================
+% FINALIZACJA PRZETWARZANIA
+% =========================================================================
+
+% Zakończenie okna postępu
 if isvalid(h_main)
-    % Pokaż finalne statystyki przez chwilę
-    updateProgress(h_main, total_samples, total_samples, ...
-        'Zakończono!', num_samples, num_samples, successful_loads, failed_loads);
-    
-    % Zmień tytuł na zakończenie
-    set(h_main, 'Name', '✅ Przetwarzanie Zakończone');
-    
-    % Poczekaj chwilę i zamknij
-    pause(1.5);
-    close(h_main);
+    finalizeProgressWindow(h_main, total_samples, num_samples, successful_loads, failed_loads);
 end
 
-% Sprawdzenie czy mamy wystarczająco danych
+% Sprawdzenie ilości wczytanych danych
 if successful_loads < 10
     warning('Zbyt mało próbek do analizy! Wczytano tylko %d próbek.', successful_loads);
 end
 
-fprintf('\nStatystyki wczytywania:\n');
-fprintf('Udane wczytania: %d\n', successful_loads);
-fprintf('Nieudane wczytania: %d\n', failed_loads);
+% Wyświetlenie statystyk
+fprintf('\n📊 Statystyki wczytywania:\n');
+fprintf('   ✅ Udane wczytania: %d\n', successful_loads);
+fprintf('   ❌ Nieudane wczytania: %d\n', failed_loads);
 
-% Tworzenie unikalnej nazwy pliku na podstawie konfiguracji
-config_string = '';
-if use_vowels && use_complex
-    config_string = 'vowels_complex';
-elseif use_vowels
-    config_string = 'vowels_only';
-elseif use_complex
-    config_string = 'complex_only';
-else
-    config_string = 'empty';
-end
+% =========================================================================
+% ZAPIS DANYCH DO PLIKU
+% =========================================================================
 
-% Użyj konfiguracji w nazwie pliku
-if normalize_features_flag
-    data_filename = sprintf('loaded_audio_data_%s_normalized.mat', config_string);
-    normalization_status = 'znormalizowane';
-else
-    data_filename = sprintf('loaded_audio_data_%s_raw.mat', config_string);
-    normalization_status = 'nieznormalizowane';
-end
+% Generowanie nazwy pliku na podstawie konfiguracji
+config_string = generateConfigString(use_vowels, use_complex);
+[data_filename, normalization_status] = generateDataFilename(config_string, normalize_features_flag);
 
-% Normalizacja cech (opcjonalna)
+% Normalizacja cech (jeśli włączona)
 if ~isempty(X)
     if normalize_features_flag
-        fprintf('Normalizacja cech...\n');
+        fprintf('⚖️ Normalizacja cech...\n');
         X = normalizeFeatures(X);
     else
-        fprintf('Pomijanie normalizacji cech...\n');
+        fprintf('🔧 Pomijanie normalizacji cech...\n');
     end
     
-    % Zapisanie danych z informacją o normalizacji
-    save(data_filename, 'X', 'Y', 'labels', 'feature_names', ...
-        'successful_loads', 'failed_loads', 'normalize_features_flag', ...
-        'normalization_status', 'noise_level', 'num_samples', ...
-        'use_vowels', 'use_complex');
+    % Zapisanie danych wraz z metadanymi
+    saveProcessedData(data_filename, X, Y, labels, successful_loads, failed_loads, ...
+        normalize_features_flag, normalization_status, noise_level, num_samples, ...
+        use_vowels, use_complex);
     
-    fprintf('Dane zostały zapisane do pliku %s (cechy: %s)\n', data_filename, normalization_status);
+    fprintf('💾 Dane zostały zapisane do pliku %s (cechy: %s)\n', data_filename, normalization_status);
 else
-    error('Nie udało się wczytać żadnych danych!');
+    error('❌ Nie udało się wczytać żadnych danych!');
 end
-
 end

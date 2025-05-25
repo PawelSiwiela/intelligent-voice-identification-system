@@ -1,115 +1,110 @@
+% =========================================================================
+% SYSTEM ROZPOZNAWANIA GŁOSU - GŁÓWNY SKRYPT
+% =========================================================================
+% Autor: [Twoje imię]
+% Data: [Data utworzenia]
+% Opis: Główny skrypt systemu rozpoznawania głosu wykorzystujący sieci
+%       neuronowe do klasyfikacji próbek audio (samogłoski i komendy złożone)
+% =========================================================================
+
 close all;
 clear all;
 clc;
 
-% Parametry wczytywania danych
-noise_level = 0.1;
-num_samples = 10;
-use_vowels = true;
-use_complex = true;
+% =========================================================================
+% KONFIGURACJA PARAMETRÓW SYSTEMU
+% =========================================================================
 
-% NOWY PARAMETR: normalizacja cech
-normalize_features = true;  % Zmień na false jeśli nie chcesz normalizować
+% Parametry przetwarzania audio
+noise_level = 0.1;         % Poziom szumu dodawanego do sygnału (0.0-1.0)
+num_samples = 10;          % Liczba próbek audio na każdą kategorię
 
-fprintf('Rozpoczęcie systemu rozpoznawania głosu...\n');
+% Parametry kategorii danych
+use_vowels = true;         % Czy wczytywać samogłoski (a, e, i)
+use_complex = true;        % Czy wczytywać komendy złożone (pary słów)
+
+% Parametry normalizacji
+normalize_features = true; % Czy normalizować cechy przed trenowaniem
+
+fprintf('🎵 SYSTEM ROZPOZNAWANIA GŁOSU - ROZPOCZĘCIE\n');
+fprintf('==========================================\n');
 total_start = tic;
 
-% KROK 1: Wczytanie danych audio
+% =========================================================================
+% KROK 1: WCZYTYWANIE I PRZETWARZANIE DANYCH AUDIO
+% =========================================================================
 fprintf('\n=== KROK 1: Wczytywanie danych audio ===\n');
 loading_start = tic;
 
-% Informacja o konfiguracji przed rozpoczęciem
-fprintf('Konfiguracja wczytywania:\n');
-fprintf('- Samogłoski: %s\n', yesno(use_vowels));
-fprintf('- Komendy złożone: %s\n', yesno(use_complex));
-fprintf('- Próbek na kategorię: %d\n', num_samples);
-fprintf('- Poziom szumu: %.1f\n', noise_level);
-fprintf('- Normalizacja cech: %s\n', yesno(normalize_features));
+% Wyświetlenie aktualnej konfiguracji
+fprintf('📋 Konfiguracja systemu:\n');
+fprintf('   • Samogłoski: %s\n', yesno(use_vowels));
+fprintf('   • Komendy złożone: %s\n', yesno(use_complex));
+fprintf('   • Próbek na kategorię: %d\n', num_samples);
+fprintf('   • Poziom szumu: %.1f\n', noise_level);
+fprintf('   • Normalizacja cech: %s\n', yesno(normalize_features));
 
-% Tworzenie nazwy pliku na podstawie konfiguracji
-config_string = '';
-if use_vowels && use_complex
-    config_string = 'vowels_complex';
-elseif use_vowels
-    config_string = 'vowels_only';
-elseif use_complex
-    config_string = 'complex_only';
-else
-    config_string = 'empty';
-end
+% Generowanie nazwy pliku na podstawie aktualnej konfiguracji
+config_string = generateConfigString(use_vowels, use_complex);
 
-% Sprawdzenie czy istnieją już przetworzone dane
+% Określenie ścieżki do pliku z danymi
 if normalize_features
     data_file = sprintf('loaded_audio_data_%s_normalized.mat', config_string);
 else
     data_file = sprintf('loaded_audio_data_%s_raw.mat', config_string);
 end
 
+% Sprawdzenie czy istnieją już przetworzone dane
 data_exists = exist(data_file, 'file');
 
 if data_exists
-    fprintf('\n✓ Znaleziono plik z danymi: %s\n', data_file);
+    fprintf('\n✅ Znaleziono plik z danymi: %s\n', data_file);
     load_existing = true;
 else
-    fprintf('\n⚠ Nie znaleziono pliku z danymi: %s\n', data_file);
-    fprintf('Przetwarzanie danych od nowa...\n');
+    fprintf('\n⚠️ Nie znaleziono pliku z danymi: %s\n', data_file);
+    fprintf('📦 Rozpoczynam przetwarzanie danych od nowa...\n');
     load_existing = false;
 end
 
+% Wczytanie istniejących danych i sprawdzenie kompatybilności
 if load_existing
-    fprintf('Wczytywanie zapisanych danych z %s...\n', data_file);
+    fprintf('📂 Wczytywanie zapisanych danych z %s...\n', data_file);
     
     loaded_data = load(data_file);
     
-    % SPRAWDZENIE KOMPATYBILNOŚCI
-    config_compatible = true;
-    if isfield(loaded_data, 'use_vowels') && isfield(loaded_data, 'use_complex')
-        if loaded_data.use_vowels ~= use_vowels || loaded_data.use_complex ~= use_complex
-            fprintf('⚠ Wykryto niezgodność konfiguracji:\n');
-            fprintf('  Plik: samogłoski=%s, pary słów=%s\n', yesno(loaded_data.use_vowels), yesno(loaded_data.use_complex));
-            fprintf('  Aktualna: samogłoski=%s, pary słów=%s\n', yesno(use_vowels), yesno(use_complex));
-            fprintf('  Przetwarzanie danych od nowa...\n');
-            fprintf('  Uwaga: zmiana konfiguracji może wpłynąć na jakość rozpoznawania.\n');
-            config_compatible = false;
-        end
-    else
-        fprintf('⚠ Brak informacji o konfiguracji w pliku. Przetwarzanie od nowa...\n');
-        config_compatible = false;
-    end
+    % Weryfikacja zgodności konfiguracji
+    config_compatible = validateConfiguration(loaded_data, use_vowels, use_complex);
     
     if config_compatible
+        % Wczytanie danych z pliku
         X = loaded_data.X;
         Y = loaded_data.Y;
         labels = loaded_data.labels;
         successful_loads = loaded_data.successful_loads;
         failed_loads = loaded_data.failed_loads;
         
-        fprintf('✅ Dane zostały wczytane z pliku!\n');
-        fprintf('Rozmiar macierzy X: %dx%d\n', size(X,1), size(X,2));
-        fprintf('Rozmiar macierzy Y: %dx%d\n', size(Y,1), size(Y,2));
-        fprintf('Liczba kategorii: %d\n', length(labels));
-        if isfield(loaded_data, 'normalization_status')
-            fprintf('Status normalizacji: %s\n', loaded_data.normalization_status);
-        end
+        % Wyświetlenie informacji o wczytanych danych
+        displayLoadedDataInfo(X, Y, labels, loaded_data);
     else
-        load_existing = false;  % Wymuś przetwarzanie od nowa
+        load_existing = false; % Wymuś przetwarzanie od nowa
     end
 end
 
-% Jeśli load_existing=false (z powodu niezgodności lub braku pliku)
+% Przetwarzanie danych od nowa (jeśli potrzeba)
 if ~load_existing
-    fprintf('\n⚠ Przetwarzanie danych od nowa...\n');
+    fprintf('\n🔄 Przetwarzanie danych od nowa...\n');
     
     try
-        [X, Y, labels, successful_loads, failed_loads] = loadAudioData(noise_level, num_samples, use_vowels, use_complex, normalize_features);
+        [X, Y, labels, successful_loads, failed_loads] = loadAudioData(...
+            noise_level, num_samples, use_vowels, use_complex, normalize_features);
         
-        % Sprawdź czy dane zostały wczytane pomyślnie
+        % Sprawdzenie czy dane zostały wczytane pomyślnie
         if isempty(X)
             fprintf('❌ Nie udało się wczytać danych lub proces został zatrzymany.\n');
             return;
         end
         
-        fprintf('✓ Przetwarzanie zakończone!\n');
+        fprintf('✅ Przetwarzanie zakończone pomyślnie!\n');
         
     catch ME
         if contains(ME.message, 'zatrzymane')
@@ -121,56 +116,26 @@ if ~load_existing
     end
 end
 
+% Podsumowanie wczytywania danych
 loading_time = toc(loading_start);
-fprintf('Czas wczytywania danych: %.2f sekund (%.2f minut)\n', loading_time, loading_time/60);
-fprintf('Udane wczytania: %d\n', successful_loads);
-fprintf('Nieudane wczytania: %d\n', failed_loads);
+displayLoadingSummary(loading_time, successful_loads, failed_loads);
 
-% KROK 2: Trenowanie sieci neuronowej
+% =========================================================================
+% KROK 2: TRENOWANIE SIECI NEURONOWEJ
+% =========================================================================
 fprintf('\n=== KROK 2: Trenowanie sieci neuronowej ===\n');
+
 [net, results] = trainNeuralNetwork(X, Y, labels, ...
-    'HiddenLayers', [15 8], ...
-    'Epochs', 1500, ...
-    'Goal', 1e-7, ...
-    'TestSamplesPerCategory', 2, ...
-    'SaveResults', true, ...
-    'ShowPlots', true);
+    'HiddenLayers', [15 8], ...    % Architektura sieci: 15 neuronów w 1. warstwie, 8 w 2.
+    'Epochs', 1500, ...            % Maksymalna liczba epok trenowania
+    'Goal', 1e-7, ...              % Docelowy błąd trenowania
+    'TestSamplesPerCategory', 2, ... % Liczba próbek testowych na kategorię
+    'SaveResults', true, ...        % Czy zapisać wyniki do pliku
+    'ShowPlots', true);             % Czy wyświetlić wykresy
 
-% KROK 3: Podsumowanie całego procesu
-total_time = toc(total_start);
-fprintf('\n=== PODSUMOWANIE ===\n');
-fprintf('Całkowity czas wykonania: %.2f sekund (%.2f minut)\n', total_time, total_time/60);
-fprintf('  - Wczytywanie danych: %.2f sekund (%.1f%%)\n', loading_time, 100*loading_time/total_time);
-if isfield(results, 'training_time')
-    fprintf('  - Trenowanie sieci: %.2f sekund (%.1f%%)\n', results.training_time, 100*results.training_time/total_time);
-end
-if isfield(results, 'testing_time')
-    fprintf('  - Testowanie sieci: %.2f sekund (%.1f%%)\n', results.testing_time, 100*results.testing_time/total_time);
-end
-
-if isfield(results, 'accuracy')
-    fprintf('\nOsiągnięta dokładność: %.2f%%\n', results.accuracy * 100);
-end
-
-fprintf('\nSystem rozpoznawania głosu został pomyślnie uruchomiony!\n');
-
-% Dodatkowe informacje o używanych danych
-fprintf('\n=== INFORMACJE O DANYCH ===\n');
-fprintf('Poziom szumu: %.1f\n', noise_level);
-fprintf('Próbek na kategorię: %d\n', num_samples);
-fprintf('Używa samogłoski: %s\n', yesno(use_vowels));
-fprintf('Używa komendy złożone: %s\n', yesno(use_complex));
-fprintf('Normalizacja cech: %s\n', yesno(normalize_features));
-if exist(data_file, 'file')
-    fprintf('Źródło danych: plik %s\n', data_file);
-else
-    fprintf('Źródło danych: przetwarzanie na żywo\n');
-end
-
-function str = yesno(logical_val)
-if logical_val
-    str = 'TAK';
-else
-    str = 'NIE';
-end
-end
+% =========================================================================
+% KROK 3: PODSUMOWANIE CAŁEGO PROCESU
+% =========================================================================
+displayFinalSummary(total_start, loading_time, results, ...
+    noise_level, num_samples, use_vowels, use_complex, ...
+    normalize_features, data_file);
