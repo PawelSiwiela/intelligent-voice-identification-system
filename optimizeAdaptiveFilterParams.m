@@ -41,11 +41,11 @@ best_score_rls = Inf;
 best_params = struct();
 
 % Utworzenie paska postępu dla optymalizacji
-total_iterations = length(M_range)*(length(mi_range) + ...
-    length(alfa_range)*length(beta_range) + ...
-    length(lambda_range)*length(delta_range));
-%h_opt = waitbar(0, 'Optymalizacja parametrów...', 'Name', 'Postęp optymalizacji');
-current_iteration = 0;
+% total_iterations = length(M_range)*(length(mi_range) + ...
+%     length(alfa_range)*length(beta_range) + ...
+%     length(lambda_range)*length(delta_range));
+% h_opt = waitbar(0, 'Optymalizacja parametrów...', 'Name', 'Postęp optymalizacji');
+% current_iteration = 0;
 
 % Po inicjalizacji parametrów dodajemy maksymalny akceptowalny czas
 max_acceptable_time = 0.3; % zmniejszenie z 0.2s na 0.1s
@@ -105,13 +105,6 @@ for M_test = M_range
             best_params.M_lms = M_test;
             best_params.mi = mi_test;
             best_params.time_lms = execution_time;
-        end
-        
-        current_iteration = current_iteration + 1;
-        % Zamiast osobnego paska postępu, zwracamy informację o postępie
-        waitbar_msg = sprintf('Optymalizacja filtrów adaptacyjnych...');
-        if exist('h_main', 'var')
-            waitbar(current_iteration/total_iterations, h_main, waitbar_msg);
         end
     end
 end
@@ -173,13 +166,6 @@ for M_test = M_range
                 best_params.alfa = alfa_test;
                 best_params.beta = beta_test;
                 best_params.time_nlms = execution_time;
-            end
-            
-            current_iteration = current_iteration + 1;
-            % Zamiast osobnego paska postępu, zwracamy informację o postępie
-            waitbar_msg = sprintf('Optymalizacja filtrów adaptacyjnych...');
-            if exist('h_main', 'var')
-                waitbar(current_iteration/total_iterations, h_main, waitbar_msg);
             end
         end
         if too_slow_nlms
@@ -252,13 +238,6 @@ for M_test = M_range
                 best_params.lambda = lambda_test;
                 best_params.delta = delta_test;
                 best_params.time_rls = execution_time;
-            end
-            
-            current_iteration = current_iteration + 1;
-            % Zamiast osobnego paska postępu, zwracamy informację o postępie
-            waitbar_msg = sprintf('Optymalizacja filtrów adaptacyjnych...');
-            if exist('h_main', 'var')
-                waitbar(current_iteration/total_iterations, h_main, waitbar_msg);
             end
         end
     end
