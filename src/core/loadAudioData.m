@@ -91,8 +91,8 @@ Y = [];  % Macierz etykiet (one-hot encoding)
 % Określenie ścieżek do folderów z danymi
 current_file_path = mfilename('fullpath');
 [current_dir, ~, ~] = fileparts(current_file_path);
-simple_path = fullfile(current_dir, 'data', 'simple');   % Ścieżka do samogłosek
-complex_path = fullfile(current_dir, 'data', 'complex'); % Ścieżka do komend
+simple_path = fullfile('data', 'simple');   % Ścieżka do samogłosek
+complex_path = fullfile('data', 'complex'); % Ścieżka do komend
 
 % Inicjalizacja liczników
 successful_loads = 0;
@@ -299,7 +299,10 @@ fprintf('   ❌ Nieudane wczytania: %d\n', failed_loads);
 config_string = generateConfigString(use_vowels, use_complex);
 [data_filename, normalization_status] = generateDataFilename(config_string, normalize_features_flag);
 
-% Normalizacja cech (jeśli włączona)
+% NOWA ŚCIEŻKA - do folderu output/preprocessed/
+output_path = fullfile('output', 'preprocessed', data_filename);
+
+% Zapisanie danych wraz z metadanymi
 if ~isempty(X)
     if normalize_features_flag
         fprintf('⚖️ Normalizacja cech...\n');
@@ -308,12 +311,11 @@ if ~isempty(X)
         fprintf('🔧 Pomijanie normalizacji cech...\n');
     end
     
-    % Zapisanie danych wraz z metadanymi
-    saveProcessedData(data_filename, X, Y, labels, successful_loads, failed_loads, ...
-        normalize_features_flag, normalization_status, noise_level, num_samples, ...
-        use_vowels, use_complex);
+    % Zapisanie danych
+    save(output_path, 'X', 'Y', 'labels', 'successful_loads', 'failed_loads', ...
+        'normalize_features_flag', 'noise_level', 'num_samples', 'use_vowels', 'use_complex');
     
-    fprintf('💾 Dane zostały zapisane do pliku %s (cechy: %s)\n', data_filename, normalization_status);
+    fprintf('💾 Dane zostały zapisane do pliku %s (cechy: %s)\n', output_path, normalization_status);
 else
     error('❌ Nie udało się wczytać żadnych danych!');
 end

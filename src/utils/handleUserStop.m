@@ -16,7 +16,9 @@ if ~isempty(X)
         data_filename = sprintf('loaded_audio_data_%s_raw_PARTIAL.mat', config_string);
     end
     
-    save(data_filename, 'X', 'Y', 'labels', 'successful_loads', 'failed_loads');
-    fprintf('💾 Częściowe dane zapisane jako: %s\n', data_filename);
+    partial_file_path = fullfile('output', 'preprocessed', data_filename);
+    
+    save(partial_file_path, 'X', 'Y', 'labels', 'successful_loads', 'failed_loads');
+    fprintf('💾 Częściowe dane zapisane jako: %s\n', partial_file_path);
 end
 end

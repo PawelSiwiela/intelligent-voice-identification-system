@@ -49,9 +49,9 @@ config_string = generateConfigString(use_vowels, use_complex);
 
 % Określenie ścieżki do pliku z danymi
 if normalize_features
-    data_file = sprintf('loaded_audio_data_%s_normalized.mat', config_string);
+    data_file = fullfile('output', 'preprocessed', sprintf('loaded_audio_data_%s_normalized.mat', config_string));
 else
-    data_file = sprintf('loaded_audio_data_%s_raw.mat', config_string);
+    data_file = fullfile('output', 'preprocessed', sprintf('loaded_audio_data_%s_raw.mat', config_string));
 end
 
 % Sprawdzenie czy istnieją już przetworzone dane
