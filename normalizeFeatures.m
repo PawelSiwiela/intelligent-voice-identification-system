@@ -56,7 +56,7 @@ end
 min_vals = min(normalized_data, [], 1);
 max_vals = max(normalized_data, [], 1);
 
-fprintf('📊 Zakres znormalizowanych cech: [%.3f, %.3f]\n', ...
-    min(min_vals), max(max_vals));
+%fprintf('📊 Zakres znormalizowanych cech: [%.3f, %.3f]\n', ...
+%    min(min_vals), max(max_vals));
 
 end

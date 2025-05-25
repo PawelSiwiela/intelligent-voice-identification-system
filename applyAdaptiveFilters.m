@@ -24,7 +24,7 @@ function [filtered_signal, mse_improvement] = applyAdaptiveFilters(noisy_signal,
 % =========================================================================
 
 % Wywołanie funkcji optymalizacji parametrów dla wszystkich filtrów
-fprintf('⚙️ Optymalizacja parametrów filtrów adaptacyjnych...\n');
+%fprintf('⚙️ Optymalizacja parametrów filtrów adaptacyjnych...\n');
 best_params = optimizeAdaptiveFilterParams(original_signal, 0.1);
 
 % Wyciągnięcie optymalnych parametrów z struktury wynikowej
@@ -67,7 +67,7 @@ y_rls = zeros(N, 1);              % Sygnał wyjściowy RLS
 % RÓWNOLEGŁA FILTRACJA TRZEMA METODAMI
 % =========================================================================
 
-fprintf('🔄 Filtracja sygnału trzema metodami adaptacyjnymi...\n');
+%fprintf('🔄 Filtracja sygnału trzema metodami adaptacyjnymi...\n');
 
 % Określenie punktu startowego (największy rząd filtru)
 start_index = max([M_lms, M_nlms, M_rls]);
@@ -150,13 +150,13 @@ filter_names = {'LMS', 'NLMS', 'RLS'};
 switch best_idx
     case 1
         filtered_signal = y_lms;
-        fprintf('✅ Wybrano filtr LMS (MSE: %.6f)\n', mse_lms);
+        %fprintf('✅ Wybrano filtr LMS (MSE: %.6f)\n', mse_lms);
     case 2
         filtered_signal = y_nlms;
-        fprintf('✅ Wybrano filtr NLMS (MSE: %.6f)\n', mse_nlms);
+        %fprintf('✅ Wybrano filtr NLMS (MSE: %.6f)\n', mse_nlms);
     case 3
         filtered_signal = y_rls;
-        fprintf('✅ Wybrano filtr RLS (MSE: %.6f)\n', mse_rls);
+        %fprintf('✅ Wybrano filtr RLS (MSE: %.6f)\n', mse_rls);
 end
 
 % Zwrócenie MSE najlepszego filtru
@@ -172,10 +172,10 @@ mse_noisy = mean((original_signal - noisy_signal).^2);
 % Obliczenie procentowej poprawy
 if mse_noisy > 0
     improvement_percent = 100 * (mse_noisy - best_mse) / mse_noisy;
-    fprintf('📈 Poprawa jakości sygnału: %.1f%% (MSE: %.6f → %.6f)\n', ...
-        improvement_percent, mse_noisy, best_mse);
+    %fprintf('📈 Poprawa jakości sygnału: %.1f%% (MSE: %.6f → %.6f)\n', ...
+    %    improvement_percent, mse_noisy, best_mse);
 else
-    fprintf('⚠️ Nie można obliczyć poprawy - MSE sygnału zaszumionego wynosi 0\n');
+    %fprintf('⚠️ Nie można obliczyć poprawy - MSE sygnału zaszumionego wynosi 0\n');
 end
 
 end

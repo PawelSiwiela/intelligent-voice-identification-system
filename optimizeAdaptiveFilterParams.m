@@ -71,7 +71,7 @@ best_params = struct();
 % OPTYMALIZACJA FILTRU LMS (Least Mean Squares)
 % =========================================================================
 
-fprintf('🔧 Optymalizacja parametrów filtru LMS...\n');
+%fprintf('🔧 Optymalizacja parametrów filtru LMS...\n');
 too_slow_lms = false;    % Flaga sygnalizująca przekroczenie limitu czasu
 
 for M_test = M_range
@@ -135,7 +135,7 @@ end
 % OPTYMALIZACJA FILTRU NLMS (Normalized Least Mean Squares)
 % =========================================================================
 
-fprintf('🔧 Optymalizacja parametrów filtru NLMS...\n');
+%fprintf('🔧 Optymalizacja parametrów filtru NLMS...\n');
 too_slow_nlms = false;
 
 for M_test = M_range
@@ -205,7 +205,7 @@ end
 % OPTYMALIZACJA FILTRU RLS (Recursive Least Squares)
 % =========================================================================
 
-fprintf('🔧 Optymalizacja parametrów filtru RLS...\n');
+%fprintf('🔧 Optymalizacja parametrów filtru RLS...\n');
 too_slow_rls = false;
 
 for M_test = M_range
@@ -286,6 +286,6 @@ end
 best_params.mse_noisy = mse_noisy;        % MSE sygnału zaszumionego
 best_params.noise_level = noise_level;    % Poziom zastosowanego szumu
 
-fprintf('✅ Optymalizacja parametrów filtrów adaptacyjnych zakończona.\n');
+%fprintf('✅ Optymalizacja parametrów filtrów adaptacyjnych zakończona.\n');
 
 end
