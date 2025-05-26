@@ -1,9 +1,6 @@
-function [best_net, best_params, grid_results] = trainNeuralNetworkOptimized(X, Y, labels, varargin)
+function [best_net, best_params, grid_results] = trainNeuralNetworkOptimized(X, Y, labels)
 % =========================================================================
 % ZOPTYMALIZOWANE TRENOWANIE SIECI Z GRID SEARCH
-% =========================================================================
-% Automatycznie znajduje najlepsze parametry sieci neuronowej
-% AUTOR: Paweł Siwiela, 2025
 % =========================================================================
 
 % Rozpoczęcie pomiaru całkowitego czasu
@@ -18,12 +15,6 @@ logInfo('================================================');
 
 % Wczytanie domyślnej konfiguracji grid search
 config = gridSearchConfig();
-
-% Nadpisanie parametrów jeśli podano custom config
-if nargin > 3 && ~isempty(varargin{1})
-    custom_config = varargin{1};
-    config = mergeConfigs(config, custom_config);
-end
 
 % Wyświetlenie informacji o konfiguracji
 displayGridSearchConfig(config, X, Y, labels);
@@ -110,17 +101,17 @@ for arch_idx = 1:length(config.network_architectures)
                                 config_result = testSingleConfiguration( ...
                                     X, Y, architecture, hidden_layers, train_func, ...
                                     activation_func, learning_rate, epochs, goal, ...
-                                    config.cv_folds, current_combination);
+                                    [], current_combination);
                                 
                                 grid_results = [grid_results; config_result];
                                 
                                 % Sprawdzenie czy to najlepszy wynik
-                                if config_result.cv_performance > best_performance
-                                    best_performance = config_result.cv_performance;
+                                if config_result.accuracy > best_performance
+                                    best_performance = config_result.accuracy;
                                     best_net = config_result.network;
                                     best_params = config_result;
                                     
-                                    logSuccess('🏆 NOWY REKORD! %.2f%% (arch=%s, layers=[%s], %s)', ...
+                                    logSuccess('🏆 NOWY REKORD! %.1f%% (arch=%s, layers=[%s], %s)', ...
                                         best_performance*100, architecture, num2str(hidden_layers), train_func);
                                 end
                                 

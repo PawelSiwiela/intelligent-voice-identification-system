@@ -1,96 +1,97 @@
 function config = gridSearchConfig()
 % =========================================================================
-% KONFIGURACJA GRID SEARCH DLA OPTYMALIZACJI SIECI
-% =========================================================================
-% Centralna konfiguracja wszystkich parametrów grid search
-% AUTOR: Paweł Siwiela, 2025
+% KONFIGURACJA GRID SEARCH - POPULARNE SKUTECZNE FUNKCJE
 % =========================================================================
 
 config = struct();
 
 % =========================================================================
-% ARCHITEKTURY SIECI
+% ARCHITEKTURY
 % =========================================================================
-config.network_architectures = {'feedforward', 'cascade', 'pattern'};
+config.network_architectures = {
+    'pattern',           % Klasyfikacja
+    'feedforward',       % Podstawowy MLP
+    };
 
 % =========================================================================
-% PARAMETRY STRUKTURALNE
+% STRUKTURY SIECI - POPRAWIONE FORMATOWANIE
 % =========================================================================
 config.hidden_layers_options = {
-    [10],           % Single layer - small
-    [15],           % Single layer - medium  
-    [20],           % Single layer - large
-    [10 5],         % Two layers - decreasing
-    [15 8],         % Two layers - medium
-    [20 10],        % Two layers - large
-    [15 10 5]       % Three layers - pyramid
-};
+    [25];
+    [30];
+    [28];
+    [32];
+    [20 15];
+    [25 20];
+    [18 15 12]
+    };
 
 % =========================================================================
 % FUNKCJE TRENOWANIA
 % =========================================================================
 config.training_functions = {
-    'trainlm',      % Levenberg-Marquardt (fast, good for small datasets)
-    'trainbr',      % Bayesian Regularization (prevents overfitting)
-    'trainscg'      % Scaled Conjugate Gradient (memory efficient)
-};
+    'trainlm';
+    'trainscg';
+    'trainrp';
+    'traingdx'
+    };
+
+config.activation_functions = {'tansig'};
 
 % =========================================================================
-% FUNKCJE AKTYWACJI
+% LEARNING RATES
 % =========================================================================
-config.activation_functions = {
-    'tansig',       % Hyperbolic tangent sigmoid
-    'logsig',       % Logarithmic sigmoid
-    'purelin'       % Linear transfer function
-};
-
-% =========================================================================
-% PARAMETRY UCZENIA
-% =========================================================================
-config.learning_rates = [0.001, 0.01, 0.05, 0.1];
+config.learning_rates = [0.01, 0.05, 0.1];
 
 % =========================================================================
 % PARAMETRY TRENOWANIA
 % =========================================================================
-config.epochs_options = [500, 1000, 1500];
-config.performance_goals = [1e-6, 1e-7, 1e-8];
+config.epochs_options = [3000];
+config.performance_goals = [1e-6];
 
 % =========================================================================
-% CROSS-VALIDATION
+% LIMITY
 % =========================================================================
-config.cv_folds = 5;                    % Liczba folds dla cross-validation
+config.max_combinations = 500;
+config.max_training_time = 60;
+config.timeout_per_config = 20;
+
+config.use_simple_split = true;
+config.train_ratio = 0.8;
+config.test_ratio = 0.2;
 
 % =========================================================================
-% LIMITY BEZPIECZEŃSTWA
+% METRYKI
 % =========================================================================
-config.max_combinations = 200;          % Maksymalna liczba kombinacji
-config.max_training_time = 60;          % Maksymalny czas trenowania [s]
-config.timeout_per_config = 10;         % Timeout dla jednej konfiguracji [s]
-
-% =========================================================================
-% METRYKI I EWALUACJA
-% =========================================================================
-config.primary_metric = 'accuracy';     % Główna metryka optymalizacji
+config.primary_metric = 'accuracy';
 config.secondary_metrics = {'precision', 'recall', 'f1_score'};
 
 % =========================================================================
 % RAPORTOWANIE
 % =========================================================================
-config.save_results = true;             % Czy zapisywać wyniki
-config.create_plots = true;             % Czy tworzyć wykresy
-config.verbose_logging = true;          % Szczegółowe logowanie
-
-% =========================================================================
-% ŚCIEŻKI ZAPISU
-% =========================================================================
+config.save_results = true;
+config.create_plots = true;
+config.verbose_logging = true;
 config.results_dir = 'output/results';
 config.networks_dir = 'output/networks';
 
-logDebug('📋 Załadowano konfigurację Grid Search');
-logDebug('   🏗️ Architektury: %d', length(config.network_architectures));
-logDebug('   🧠 Warstwy ukryte: %d opcji', length(config.hidden_layers_options));
-logDebug('   ⚙️ Funkcje trenowania: %d', length(config.training_functions));
-logDebug('   📈 Learning rates: %d', length(config.learning_rates));
-logDebug('   🎯 Maksimum kombinacji: %d', config.max_combinations);
+% =========================================================================
+% OBLICZENIE KOMBINACJI
+% =========================================================================
+total_combinations = length(config.network_architectures) * ...
+    length(config.hidden_layers_options) * ...
+    length(config.training_functions) * ...
+    length(config.activation_functions) * ...
+    length(config.learning_rates) * ...
+    length(config.epochs_options) * ...
+    length(config.performance_goals);
+
+% Ogranicz do max_combinations
+total_combinations = min(total_combinations, config.max_combinations);
+
+logDebug('📋 FAST Grid Search - BEZ trainbr!');
+logDebug('   🎯 Funkcje: trainlm, trainscg, trainrp, traingdx');
+logDebug('   🧠 Kombinacji: %d', total_combinations);
+logDebug('   ⏱️ Czas: ~20 minut (szybkie funkcje)');
 
 end

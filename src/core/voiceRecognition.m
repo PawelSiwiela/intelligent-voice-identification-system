@@ -130,14 +130,9 @@ architecture_optimization = true;  % Testuj różne architektury
 if grid_search_enabled
     logInfo('🔍 Tryb Grid Search włączony - automatyczna optymalizacja parametrów');
     
-    % Opcjonalne: custom config dla grid search
-    custom_config = struct();
-    custom_config.max_combinations = 50;  % Ograniczenie dla szybszego testu
-    custom_config.cv_folds = 3;           % Mniej folds dla szybkości
-    
     % Grid Search optymalizacja
     optimization_start = tic;
-    [trained_net, best_params, grid_results] = trainNeuralNetworkOptimized(X, Y, labels, custom_config);
+    [trained_net, best_params, grid_results] = trainNeuralNetworkOptimized(X, Y, labels);
     optimization_time = toc(optimization_start);
     
     logSuccess('⚡ Grid Search zakończony w %.1f s (%.1f min)', optimization_time, optimization_time/60);
@@ -150,6 +145,6 @@ end
 % =========================================================================
 % KROK 3: PODSUMOWANIE CAŁEGO PROCESU
 % =========================================================================
-displayFinalSummary(total_start, loading_time, results, ...
+displayFinalSummary(total_start, loading_time, best_params, ...
     noise_level, num_samples, use_vowels, use_complex, ...
     normalize_features, data_file);
