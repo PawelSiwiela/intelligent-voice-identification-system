@@ -120,18 +120,32 @@ loading_time = toc(loading_start);
 displayLoadingSummary(loading_time, successful_loads, failed_loads);
 
 % =========================================================================
-% KROK 2: TRENOWANIE SIECI NEURONOWEJ
+% KONFIGURACJA OPTYMALIZACJI SIECI
 % =========================================================================
-logInfo('=== KROK 2: Trenowanie sieci neuronowej ===');
 
-[net, results] = trainNeuralNetwork(X, Y, labels, ...
-    'HiddenLayers', [15 8], ...      % Architektura sieci: 15 neuronów w 1. warstwie, 8 w 2.
-    'Epochs', 1500, ...              % Maksymalna liczba epok trenowania
-    'Goal', 1e-7, ...                % Docelowy błąd trenowania
-    'TestSamplesPerCategory', 2, ... % Liczba próbek testowych na kategorię
-    'SaveResults', true, ...         % Czy zapisać wyniki do pliku
-    'ShowPlots', true, ...           % Czy wyświetlić wykresy
-    'Verbose', false);               % Czy wyświetlać szczegółowe informacje
+% Tryb optymalizacji
+grid_search_enabled = true;        % Włącz/wyłącz grid search
+architecture_optimization = true;  % Testuj różne architektury
+
+if grid_search_enabled
+    logInfo('🔍 Tryb Grid Search włączony - automatyczna optymalizacja parametrów');
+    
+    % Opcjonalne: custom config dla grid search
+    custom_config = struct();
+    custom_config.max_combinations = 50;  % Ograniczenie dla szybszego testu
+    custom_config.cv_folds = 3;           % Mniej folds dla szybkości
+    
+    % Grid Search optymalizacja
+    optimization_start = tic;
+    [trained_net, best_params, grid_results] = trainNeuralNetworkOptimized(X, Y, labels, custom_config);
+    optimization_time = toc(optimization_start);
+    
+    logSuccess('⚡ Grid Search zakończony w %.1f s (%.1f min)', optimization_time, optimization_time/60);
+    
+else
+    logInfo('🧠 Tryb standardowego trenowania');
+    trained_net = trainNeuralNetwork(X, Y, labels);
+end
 
 % =========================================================================
 % KROK 3: PODSUMOWANIE CAŁEGO PROCESU
