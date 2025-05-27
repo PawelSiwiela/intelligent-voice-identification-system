@@ -22,7 +22,7 @@ fprintf('==========================================\n');
 % =========================================================================
 
 % Dodanie wszystkich podkatalogów src do ścieżki MATLAB
-addpath(genpath('new_src'));
+addpath(genpath('src'));
 fprintf('📁 Dodano ścieżki do kodu źródłowego\n');
 
 % =========================================================================
