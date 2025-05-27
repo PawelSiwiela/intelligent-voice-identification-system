@@ -120,27 +120,34 @@ loading_time = toc(loading_start);
 displayLoadingSummary(loading_time, successful_loads, failed_loads);
 
 % =========================================================================
-% KONFIGURACJA OPTYMALIZACJI SIECI
+% KONFIGURACJA OPTYMALIZACJI SIECI - WYBÓR METODY
 % =========================================================================
 
-% Tryb optymalizacji
-grid_search_enabled = true;        % Włącz/wyłącz grid search
-architecture_optimization = true;  % Testuj różne architektury
+% DOSTĘPNE METODY OPTYMALIZACJI:
+optimization_methods = {
+    'grid_search',    % Systematyczne przeszukiwanie wszystkich kombinacji
+    'random_search',  % Losowe próbkowanie z przestrzeni parametrów
+    'bayesian',       % Inteligentne przeszukiwanie Bayesowskie
+    'genetic'         % Algorytm ewolucyjny
+    };
 
-if grid_search_enabled
-    logInfo('🔍 Tryb Grid Search włączony - automatyczna optymalizacja parametrów');
-    
-    % Grid Search optymalizacja
-    optimization_start = tic;
-    [trained_net, best_params, grid_results] = trainNeuralNetworkOptimized(X, Y, labels);
-    optimization_time = toc(optimization_start);
-    
-    logSuccess('⚡ Grid Search zakończony w %.1f s (%.1f min)', optimization_time, optimization_time/60);
-    
-else
-    logInfo('🧠 Tryb standardowego trenowania');
-    trained_net = trainNeuralNetwork(X, Y, labels);
+% WYBÓR METODY (zmień tutaj):
+selected_method = 'grid_search';  % Zmień na: random_search, bayesian, genetic
+
+% Walidacja wyboru
+if ~ismember(selected_method, optimization_methods)
+    logError('Nieznana metoda: %s. Dostępne: %s', selected_method, strjoin(optimization_methods, ', '));
+    selected_method = 'grid_search'; % Fallback
 end
+
+logInfo('🔍 Wybrana metoda optymalizacji: %s', upper(selected_method));
+
+optimization_start = tic;
+[trained_net, best_params, optimization_results] = optimizationController(X, Y, labels, selected_method);
+optimization_time = toc(optimization_start);
+
+logSuccess('⚡ Optymalizacja %s zakończona w %.1f s (%.1f min)', ...
+    upper(selected_method), optimization_time, optimization_time/60);
 
 % =========================================================================
 % KROK 3: PODSUMOWANIE CAŁEGO PROCESU
