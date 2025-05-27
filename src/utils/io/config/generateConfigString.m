@@ -14,7 +14,7 @@ function config_string = generateConfigString(use_vowels, use_complex)
 
 % Określenie typu danych na podstawie flag
 if use_vowels && use_complex
-    config_string = 'vowels_and_complex';
+    config_string = 'vowels_complex';
 elseif use_vowels
     config_string = 'vowels_only';
 elseif use_complex
