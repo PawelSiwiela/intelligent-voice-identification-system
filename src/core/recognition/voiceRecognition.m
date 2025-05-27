@@ -20,10 +20,10 @@ num_samples = 10;          % Liczba próbek audio na każdą kategorię
 
 % Parametry kategorii danych
 use_vowels = true;         % Czy wczytywać samogłoski (a, e, i)
-use_complex = true;        % Czy wczytywać komendy złożone (pary słów)
+use_complex = false;        % Czy wczytywać komendy złożone (pary słów)
 
 % Parametry normalizacji
-normalize_features = true; % Czy normalizować cechy przed trenowaniem
+normalize_features = false; % Czy normalizować cechy przed trenowaniem
 
 logInfo('🎵 SYSTEM ROZPOZNAWANIA GŁOSU - ROZPOCZĘCIE');
 logInfo('==========================================');
