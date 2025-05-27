@@ -1,7 +1,7 @@
 % Nowy plik: src/config/optimization/randomSearchConfig.m
 function config = randomSearchConfig()
 % =========================================================================
-% KONFIGURACJA RANDOM SEARCH - NIEZALEŻNA OD GRID SEARCH
+% KONFIGURACJA RANDOM SEARCH - ULEPSZONA DLA WYŻSZEJ SKUTECZNOŚCI
 % =========================================================================
 
 config = struct();
@@ -12,76 +12,100 @@ config = struct();
 config.method = 'random_search';
 
 % =========================================================================
-% PARAMETRY RANDOM SEARCH
+% PARAMETRY RANDOM SEARCH - ZWIĘKSZONE
 % =========================================================================
-config.max_iterations = 100;           % Liczba losowych prób
+config.max_iterations = 200;           % Zwiększone z 100 na 200
 config.random_seed = 42;               % Seed dla powtarzalności
 
-% Early stopping
-config.early_stopping = true;          % ✅ Włącz early stopping
-config.patience = 60;                  % ✅ 60 iteracji (3x więcej niż było)
-config.min_improvement = 0.005;        % Minimalna poprawa 0.5%
+% Early stopping - BARDZIEJ AGRESYWNE
+config.early_stopping = true;
+config.patience = 80;                  % Zwiększone z 60 na 80
+config.min_improvement = 0.002;        % Zmniejszone z 0.005 na 0.002
 
 % =========================================================================
 % ARCHITEKTURY SIECI
 % =========================================================================
 config.network_architectures = {
-    'pattern',           % Klasyfikacja wzorców
-    'feedforward'        % Podstawowy MLP
+    'pattern',           % 80% szans
+    'feedforward'        % 20% szans
     };
 
 % =========================================================================
-% STRUKTURY SIECI - ZOPTYMALIZOWANE DLA RANDOM SEARCH
+% STRUKTURY SIECI - DODAJ WIĘKSZE SIECI
 % =========================================================================
 config.hidden_layers_options = {
+    [35];              % Pojedyncze warstwy
+    [40];
+    [45];
+    [50];
+    [60];
     [25];
     [30];
-    [28];
     [32];
-    [20 15];
+    [28];
+    [30 25];           % Dwuwarstwowe
+    [35 30];
+    [40 35];
+    [45 40];
+    [50 45];
     [25 20];
+    [20 15];
+    [25 20 15];        % Trójwarstwowe
+    [30 25 20];
+    [35 30 25];
+    [40 35 30];
     [18 15 12]
     };
 
 % =========================================================================
-% FUNKCJE TRENOWANIA - SZYBKIE I SKUTECZNE
+% FUNKCJE TRENOWANIA - WIĘCEJ OPCJI
 % =========================================================================
 config.training_functions = {
-    'trainlm';          % Levenberg-Marquardt (najlepszy)
-    'trainrp';          % Resilient Backprop (szybki)
-    'trainscg';         % Scaled Conjugate Gradient
-    'traingdx'          % Gradient Descent z momentum
+    'trainlm';          % Levenberg-Marquardt (40% szans)
+    'trainbr';          % Bayesian Regularization (30% szans)
+    'trainscg';         % Scaled Conjugate Gradient (20% szans)
+    'trainrp';          % Resilient Backprop (10% szans)
     };
 
 % =========================================================================
-% FUNKCJE AKTYWACJI
+% FUNKCJE AKTYWACJI - WIĘCEJ EKSPERYMENTÓW
 % =========================================================================
 config.activation_functions = {
-    'tansig';           % Tangens hiperboliczny
-    'logsig'            % ✅ Dodaj drugą opcję dla Random Search
+    'tansig';           % 50% szans
+    'logsig';           % 40% szans
+    'purelin'           % 10% szans
     };
 
 % =========================================================================
 % LEARNING RATES - SZERSZY ZAKRES
 % =========================================================================
 config.learning_rates = [
-    0.005,              % Bardzo niski
-    0.01,               % Niski
-    0.05,               % Średni
-    0.1,                % Wysoki
+    0.001,              % Bardzo niski
+    0.003,
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.15,
+    0.2                 % Bardzo wysoki
     ];
 
 % =========================================================================
 % PARAMETRY TRENOWANIA
 % =========================================================================
 config.epochs_options = [
-    1500,               % Szybkie trenowanie
-    3000,               % Standardowe
-    5000                % ✅ Długie (dla Random Search)
+    1500,
+    2000,
+    3000,
+    4000,
+    5000                % Długie trenowanie
     ];
 
 config.performance_goals = [
-    1e-6                % Bardzo restrykcyjny
+    1e-7,               % Bardzo restrykcyjny
+    1e-6,
+    1e-5
     ];
 
 % =========================================================================
@@ -139,7 +163,7 @@ total_space = length(config.network_architectures) * ...
 % Procent przeszukiwanej przestrzeni
 coverage_percent = (config.max_iterations / total_space) * 100;
 
-logDebug('🎲 RANDOM SEARCH CONFIG - NIEZALEŻNY');
+logDebug('🎲 RANDOM SEARCH CONFIG - ULEPSZONA DLA WYŻSZEJ SKUTECZNOŚCI');
 logDebug('   🏗️ Architektury: %d opcji', length(config.network_architectures));
 logDebug('   🧠 Struktury sieci: %d opcji', length(config.hidden_layers_options));
 logDebug('   ⚙️ Funkcje trenowania: %d opcji', length(config.training_functions));

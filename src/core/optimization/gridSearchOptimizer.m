@@ -79,10 +79,10 @@ for arch_idx = 1:length(config.network_architectures)
                             
                             % Test pojedynczej konfiguracji
                             try
-                                % POPRAWIONE WYWOŁANIE - osobne argumenty zamiast struktury
+                                % POPRAWIONE WYWOŁANIE - PRZEKAŻ config
                                 test_result = testSingleConfiguration(X, Y, ...
                                     architecture, hidden_layers, train_func, activation_func, ...
-                                    learning_rate, epochs, goal, [], current_combination);
+                                    learning_rate, epochs, goal, config, current_combination);  % DODANO config!
                                 
                                 % Sprawdzenie czy test_result ma wymagane pola
                                 if ~isfield(test_result, 'accuracy')

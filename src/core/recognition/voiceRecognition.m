@@ -132,7 +132,7 @@ optimization_methods = {
     };
 
 % WYBÓR METODY (zmień tutaj):
-selected_method = 'grid_search';  % Zmień na: random_search, bayesian, genetic
+selected_method = 'grid_search';  % Zmień na: random_search, grid_search
 
 % Walidacja wyboru
 if ~ismember(selected_method, optimization_methods)

@@ -2,7 +2,6 @@
 % INTELLIGENT VOICE IDENTIFICATION SYSTEM - GŁÓWNY SKRYPT URUCHAMIAJĄCY
 % =========================================================================
 
-
 clear all;
 close all;
 clc;
