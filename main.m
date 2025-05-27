@@ -1,11 +1,7 @@
 % =========================================================================
 % INTELLIGENT VOICE IDENTIFICATION SYSTEM - GŁÓWNY SKRYPT URUCHAMIAJĄCY
 % =========================================================================
-% Skrypt główny do uruchamiania systemu rozpoznawania głosu
-%
-% AUTOR: Paweł Siwiela
-% DATA: 2025
-% =========================================================================
+
 
 clear all;
 close all;
