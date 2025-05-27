@@ -1,0 +1,150 @@
+function voiceRecognition()
+% =========================================================================
+% SYSTEM ROZPOZNAWANIA GŁOSU - GŁÓWNY SKRYPT
+% =========================================================================
+
+close all;
+clear all;
+clc;
+
+% Rozpoczęcie pomiaru całkowitego czasu
+total_start = tic;
+
+% =========================================================================
+% KONFIGURACJA PARAMETRÓW SYSTEMU
+% =========================================================================
+
+% Parametry przetwarzania audio
+noise_level = 0.1;         % Poziom szumu dodawanego do sygnału (0.0-1.0)
+num_samples = 10;          % Liczba próbek audio na każdą kategorię
+
+% Parametry kategorii danych
+use_vowels = true;         % Czy wczytywać samogłoski (a, e, i)
+use_complex = true;        % Czy wczytywać komendy złożone (pary słów)
+
+% Parametry normalizacji
+normalize_features = false; % Czy normalizować cechy przed trenowaniem
+
+logInfo('🎵 SYSTEM ROZPOZNAWANIA GŁOSU - ROZPOCZĘCIE');
+logInfo('==========================================');
+logInfo(''); % Pusta linia
+
+% =========================================================================
+% KROK 1: WCZYTYWANIE I PRZETWARZANIE DANYCH AUDIO
+% =========================================================================
+logInfo('=== KROK 1: Wczytywanie danych audio ===');
+loading_start = tic;
+
+% Wyświetlenie aktualnej konfiguracji
+logInfo('📋 Konfiguracja systemu:');
+logInfo('   • Samogłoski: %s', yesno(use_vowels));
+logInfo('   • Komendy złożone: %s', yesno(use_complex));
+logInfo('   • Próbek na kategorię: %d', num_samples);
+logInfo('   • Poziom szumu: %.1f', noise_level);
+logInfo('   • Normalizacja cech: %s', yesno(normalize_features));
+
+% Generowanie nazwy pliku na podstawie aktualnej konfiguracji
+config_string = generateConfigString(use_vowels, use_complex);
+
+% Określenie ścieżki do pliku z danymi
+if normalize_features
+    data_file = fullfile('output', 'preprocessed', sprintf('loaded_audio_data_%s_normalized.mat', config_string));
+else
+    data_file = fullfile('output', 'preprocessed', sprintf('loaded_audio_data_%s_raw.mat', config_string));
+end
+
+% Sprawdzenie czy istnieją już przetworzone dane
+data_exists = exist(data_file, 'file');
+
+if data_exists
+    logSuccess('✅ Znaleziono plik z danymi: %s', data_file);
+    load_existing = true;
+else
+    logWarning('⚠️ Nie znaleziono pliku z danymi: %s', data_file);
+    logInfo('📦 Rozpoczynam przetwarzanie danych od nowa...\n');
+    load_existing = false;
+end
+
+% Wczytanie istniejących danych i sprawdzenie kompatybilności
+if load_existing
+    logInfo('📂 Wczytywanie zapisanych danych z %s...', data_file);
+    
+    loaded_data = load(data_file);
+    
+    % Weryfikacja zgodności konfiguracji
+    config_compatible = validateConfiguration(loaded_data, use_vowels, use_complex);
+    
+    if config_compatible
+        % Wczytanie danych z pliku
+        X = loaded_data.X;
+        Y = loaded_data.Y;
+        labels = loaded_data.labels;
+        successful_loads = loaded_data.successful_loads;
+        failed_loads = loaded_data.failed_loads;
+        
+        % Wyświetlenie informacji o wczytanych danych
+        displayLoadedDataInfo(X, Y, labels, loaded_data);
+    else
+        load_existing = false; % Wymuś przetwarzanie od nowa
+    end
+end
+
+% Przetwarzanie danych od nowa (jeśli potrzeba)
+if ~load_existing
+    logInfo('🔄 Przetwarzanie danych od nowa...');
+    
+    try
+        [X, Y, labels, successful_loads, failed_loads] = loadAudioData(...
+            noise_level, num_samples, use_vowels, use_complex, normalize_features);
+        
+        % Sprawdzenie czy dane zostały wczytane pomyślnie
+        if isempty(X)
+            logError('❌ Nie udało się wczytać danych lub proces został zatrzymany.');
+            return;
+        end
+        
+        logSuccess('✅ Przetwarzanie zakończone pomyślnie!');
+        
+    catch ME
+        if contains(ME.message, 'zatrzymane')
+            logWarning('🛑 Proces został zatrzymany przez użytkownika.');
+            return;
+        else
+            rethrow(ME);
+        end
+    end
+end
+
+% Podsumowanie wczytywania danych
+loading_time = toc(loading_start);
+displayLoadingSummary(loading_time, successful_loads, failed_loads);
+
+% =========================================================================
+% KONFIGURACJA OPTYMALIZACJI SIECI
+% =========================================================================
+
+% Tryb optymalizacji
+grid_search_enabled = true;        % Włącz/wyłącz grid search
+architecture_optimization = true;  % Testuj różne architektury
+
+if grid_search_enabled
+    logInfo('🔍 Tryb Grid Search włączony - automatyczna optymalizacja parametrów');
+    
+    % Grid Search optymalizacja
+    optimization_start = tic;
+    [trained_net, best_params, grid_results] = trainNeuralNetworkOptimized(X, Y, labels);
+    optimization_time = toc(optimization_start);
+    
+    logSuccess('⚡ Grid Search zakończony w %.1f s (%.1f min)', optimization_time, optimization_time/60);
+    
+else
+    logInfo('🧠 Tryb standardowego trenowania');
+    trained_net = trainNeuralNetwork(X, Y, labels);
+end
+
+% =========================================================================
+% KROK 3: PODSUMOWANIE CAŁEGO PROCESU
+% =========================================================================
+displayFinalSummary(total_start, loading_time, best_params, ...
+    noise_level, num_samples, use_vowels, use_complex, ...
+    normalize_features, data_file);
