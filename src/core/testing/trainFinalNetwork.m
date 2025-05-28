@@ -11,10 +11,8 @@ net = patternnet(golden_params.hidden_layers, golden_params.train_function);
 
 % ===== USTAWIENIA TRENINGU Z OKNEM! =====
 net.trainParam.showWindow = true;         % ✅ WŁĄCZ okno trenowania!
-net.trainParam.showCommandLine = true;    % ✅ WŁĄCZ command line
-net.trainParam.show = 25;                 % Pokazuj co 25 epok
-net.plotFcns = {'plotperform', 'plottrainstate'}; % ✅ PODSTAWOWE WYKRESY!
-
+net.trainParam.showCommandLine = false;    % ✅ WŁĄCZ command line
+net.plotFcns = {'plotperform', 'plottrainstate', 'plotconfusion', 'plotroc'};
 % Parametry trenowania z Golden Parameters
 net.trainParam.lr = golden_params.learning_rate;
 net.trainParam.epochs = golden_params.epochs;

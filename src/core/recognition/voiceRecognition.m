@@ -1,11 +1,4 @@
 function voiceRecognition()
-% =========================================================================
-% SYSTEM ROZPOZNAWANIA GŁOSU - GŁÓWNY SKRYPT
-% =========================================================================
-
-close all;
-clear all;
-clc;
 
 % Rozpoczęcie pomiaru całkowitego czasu
 total_start = tic;
@@ -27,7 +20,7 @@ normalize_features = true; % Czy normalizować cechy przed trenowaniem
 
 logInfo('🎵 SYSTEM ROZPOZNAWANIA GŁOSU - ROZPOCZĘCIE');
 logInfo('==========================================');
-logInfo(''); % Pusta linia
+logInfo('');
 
 % =========================================================================
 % KROK 1: WCZYTYWANIE I PRZETWARZANIE DANYCH AUDIO
@@ -120,24 +113,30 @@ loading_time = toc(loading_start);
 displayLoadingSummary(loading_time, successful_loads, failed_loads);
 
 % =========================================================================
-% OPTYMALIZACJA HIPERPARAMETRÓW - TYLKO RANDOM SEARCH
+% OPTYMALIZACJA HIPERPARAMETRÓW
 % =========================================================================
 
 logInfo('🔍 Rozpoczynam optymalizację hiperparametrów...');
 
-% JEDNA METODA: Random Search z Golden Parameters Discovery
-selected_method = 'random_search';  % 🎲 Sprawdzona metoda!
+% Wybór metody optymalizacji
+selected_method = 'random_search';
 
 logInfo('🎲 Metoda optymalizacji: RANDOM SEARCH');
 logInfo('💎 Cel: znalezienie Golden Parameters (95%+)');
 
+% Czas rozpoczęcia optymalizacji
 optimization_start = tic;
 
-% Random Search z konfiguracją
+% Pobieranie konfiguracji Random Search
 config = randomSearchConfig();
-displayRandomSearchConfig(config, X, Y, labels);  % ⚠️ DODAJ tę funkcję!
+
+% Wyświetlenie konfiguracji
+displayRandomSearchConfig(config, X, Y, labels);
+
+% Pobranie wyników optymalizacji
 [results, best_model] = randomSearchOptimizer(X, Y, labels, config);
 
+% Czas zakończenia optymalizacji
 optimization_time = toc(optimization_start);
 
 logSuccess('⚡ Optymalizacja zakończona w %.1f sekund (%.1f minut)', ...
@@ -238,31 +237,19 @@ if strcmp(selected_method, 'random_search') && ...
     logInfo('🎯 ROZPOCZYNAM FINALNE TESTOWANIE Z GOLDEN PARAMETERS...');
     logInfo('💎 Trenowanie finalnej sieci z OKNEM trenowania...');
     
-    % ===== TRENUJ FINALNĄ SIEĆ Z OKNEM =====
-    final_net = trainFinalNetwork(X, Y, golden_params);
+    % Trenowanie finalnej sieci z Golden Parameters
+    [final_net, final_results] = trainNeuralNetwork(X, Y, golden_params, true);
     
     % Testowanie finalnej sieci
     final_results = testFinalNetwork(final_net, X, Y, labels, golden_params);
     
-    % ===== TYLKO MACIERZ KONFUZJI =====
-    if exist('src/utils/visualization', 'dir')
-        addpath('src/utils/visualization');
-        
-        % SPRAWDŹ JAKIE FUNKCJE MASZ W VISUALIZATION
-        vis_files = dir('src/utils/visualization/*.m');
-        if ~isempty(vis_files)
-            logInfo('📊 Dostępne funkcje wizualizacji:');
-            for i = 1:length(vis_files)
-                logInfo('   - %s', vis_files(i).name);
-            end
-        end
-        
-        % UŻYJ ISTNIEJĄCEJ FUNKCJI MACIERZY KONFUZJI
-        plotConfusionMatrix(final_results.true_labels, final_results.predictions, labels, ...
-            sprintf('Macierz Konfuzji - Golden Parameters (%.1f%%)', final_results.accuracy*100));
-    end
+    % Wyświetlenie macierzy konfuzji
+    logInfo('🎯 Generowanie macierzy konfuzji...');
+    plotConfusionMatrix(final_results.true_labels, final_results.predictions, labels, ...
+        sprintf('Macierz Konfuzji - skuteczność: %.1f%%', final_results.accuracy*100));
     
-    logSuccess('📊 Wyświetlono macierz konfuzji dla Golden Parameters!');
+    
+    logSuccess('📊 Wyświetlono wszystkie wizualizacje dla Golden Parameters!');
     
 else
     logInfo('ℹ️ Standardowe testowanie - brak Golden Parameters lub accuracy < 95%%');
