@@ -80,6 +80,12 @@ config.random_seed = randi(10000);  % Losowy seed za każdym razem
 config.early_stopping = true;
 config.patience = 30;  % Mniejsza cierpliwość dla random search
 
+% ===== TIMEOUT PARAMETERS =====
+config.timeout_per_iteration = 45;   % 45 sekund na jeden zestaw parametrów
+config.max_total_time = 3600;        % 1 godzina maksymalny czas całego search
+config.timeout_action = 'skip';      % 'skip' lub 'abort' - co robić przy timeout
+config.show_timeout_warnings = true; % Pokazuj ostrzeżenia o timeout
+
 % =========================================================================
 % ALIASY DLA KOMPATYBILNOŚCI Z sampleRandomParameters.m
 % =========================================================================

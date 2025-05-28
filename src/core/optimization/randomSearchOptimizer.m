@@ -22,8 +22,18 @@ if isfield(config, 'random_seed')
     rng(config.random_seed);
 end
 
-% ===== GŁÓWNA PĘTLA RANDOM SEARCH =====
+% ===== GŁÓWNA PĘTLA RANDOM SEARCH Z EARLY STOPPING I TIMEOUT =====
+target_accuracy = 0.95; % 95% - próg do zatrzymania
+timeout_count = 0;       % Licznik timeout'ów
+
 for i = 1:config.max_iterations
+    % Sprawdzenie timeout całkowitego czasu
+    total_elapsed = toc(optimization_start);
+    if isfield(config, 'max_total_time') && total_elapsed > config.max_total_time
+        logWarning('⏰ TIMEOUT CAŁKOWITY! Przekroczono %d sekund. Zatrzymuję search.', config.max_total_time);
+        break;
+    end
+    
     % Losowanie parametrów
     params = sampleRandomParameters(config);
     
@@ -31,15 +41,36 @@ for i = 1:config.max_iterations
         i, config.max_iterations, mat2str(params.hidden_layers), ...
         params.train_function, params.learning_rate);
     
+    % ===== TRENOWANIE Z TIMEOUT =====
+    iteration_start = tic;
+    training_completed = false;
+    
     try
-        % Trenowanie z wylosowanymi parametrami
+        % Przekaż timeout do params jeśli dostępny
+        if isfield(config, 'timeout_per_iteration')
+            params.timeout_per_iteration = config.timeout_per_iteration;
+        end
+        
+        % Trenowanie z wylosowanymi parametrami (używa zmodyfikowanej funkcji)
+        iteration_start = tic;
         [net, accuracy] = trainWithRandomParams(X, Y, params);
+        iteration_time = toc(iteration_start);
+        
+        % Sprawdź czy to był timeout
+        timeout_occurred = false;
+        if isfield(config, 'timeout_per_iteration') && iteration_time >= config.timeout_per_iteration
+            timeout_occurred = true;
+            logWarning('⏰ TIMEOUT iteracji %d (%.1fs) - parametry: [%s], %s, lr=%.3f', ...
+                i, iteration_time, mat2str(params.hidden_layers), ...
+                params.train_function, params.learning_rate);
+        end
         
         % Zapisanie wyniku
         result = params;
         result.accuracy = accuracy;
         result.iteration = i;
-        result.network = net;
+        result.training_time = iteration_time;
+        result.timeout = timeout_occurred;
         
         if isempty(random_results)
             random_results = result;
@@ -47,29 +78,67 @@ for i = 1:config.max_iterations
             random_results(end+1) = result;
         end
         
-        % Sprawdzenie czy to najlepszy wynik
-        if accuracy > best_accuracy
+        % Sprawdzenie czy to najlepszy wynik (tylko jeśli nie było timeout)
+        if accuracy > best_accuracy && ~timeout_occurred
             best_accuracy = accuracy;
             best_params = result;
             best_model = net;
             
-            logSuccess('🏆 NOWY REKORD! %.1f%% - [%s], %s, lr=%.3f', ...
+            logSuccess('🏆 NOWY REKORD! %.1f%% - [%s], %s, lr=%.3f (czas: %.1fs)', ...
                 accuracy*100, mat2str(params.hidden_layers), ...
-                params.train_function, params.learning_rate);
+                params.train_function, params.learning_rate, iteration_time);
         end
         
-        logDebug('   ✅ Accuracy: %.1f%%', accuracy*100);
+        if timeout_occurred
+            logDebug('   ⏰ TIMEOUT - wynik: %.1f%% (czas: %.1fs)', accuracy*100, iteration_time);
+        else
+            logDebug('   ✅ Accuracy: %.1f%% (czas: %.1fs)', accuracy*100, iteration_time);
+        end
         
-        % Early stopping jeśli osiągnięto cel
-        if isfield(config, 'target_accuracy') && accuracy >= config.target_accuracy
-            logSuccess('🎯 Osiągnięto cel %.1f%%! Zatrzymuję search.', config.target_accuracy*100);
-            break;
+        % ===== EARLY STOPPING - KLUCZOWA SEKCJA! =====
+        if accuracy >= target_accuracy && ~timeout_occurred
+            logSuccess('🎯 OSIĄGNIĘTO CEL %.1f%%! Zatrzymuję Random Search po %d iteracjach', ...
+                accuracy*100, i);
+            logSuccess('🚀 Znalezione GOLDEN parametry:');
+            logSuccess('   🧠 Architektura: %s', mat2str(params.hidden_layers));
+            logSuccess('   ⚙️ Funkcja treningu: %s', params.train_function);
+            logSuccess('   📈 Learning rate: %.4f', params.learning_rate);
+            logSuccess('   🔧 Aktywacja: %s', params.activation_function);
+            logSuccess('   📊 Epoki: %d', params.epochs);
+            
+            % Zapisz natychmiast najlepsze parametry
+            saveGoldenParameters(best_params, accuracy, i);
+            
+            break; % PRZERWIJ SEARCH!
         end
         
     catch ME
-        logWarning('⚠️ Błąd iteracji %d: %s', i, ME.message);
+        iteration_time = toc(iteration_start);
+        logWarning('⚠️ Błąd iteracji %d: %s (czas: %.1fs)', i, ME.message, iteration_time);
+        
+        % Zapisz błąd jako wynik z accuracy=0
+        result = params;
+        result.accuracy = 0;
+        result.iteration = i;
+        result.training_time = iteration_time;
+        result.timeout = (iteration_time >= config.timeout_per_iteration);
+        result.error_message = ME.message;
+        
+        if isempty(random_results)
+            random_results = result;
+        else
+            random_results(end+1) = result;
+        end
+        
         continue;
     end
+end
+
+% Dodaj statystyki timeout'ów na końcu
+if timeout_count > 0
+    logInfo('⏰ Statystyki timeout:');
+    logInfo('   🕐 Liczba timeout: %d/%d (%.1f%%)', timeout_count, i, 100*timeout_count/i);
+    logInfo('   ⏱️ Timeout per iteracja: %d sekund', config.timeout_per_iteration);
 end
 
 % Finalizacja
@@ -95,7 +164,7 @@ end
 end
 
 function [net, accuracy] = trainWithRandomParams(X, Y, params)
-% Trenowanie sieci z losowymi parametrami - BEZ PLOTÓW!
+% Trenowanie sieci z losowymi parametrami - BEZ PLOTÓW + Z TIMEOUT!
 
 % Tworzenie sieci
 net = patternnet(params.hidden_layers, params.train_function);
@@ -117,8 +186,39 @@ if isfield(params, 'validation_checks')
     net.trainParam.max_fail = params.validation_checks;
 end
 
-% Trenowanie - teraz bez plotów!
-net = train(net, X', Y');
+% ===== TRENOWANIE Z KONTROLĄ CZASU =====
+training_start = tic;
+max_training_time = 45; % 45 sekund domyślny timeout
+
+% Sprawdź czy params ma timeout (jeśli będzie przekazywany z config)
+if isfield(params, 'timeout_per_iteration')
+    max_training_time = params.timeout_per_iteration;
+end
+
+try
+    % Trenowanie sieci
+    net = train(net, X', Y');
+    
+    training_time = toc(training_start);
+    
+    % Sprawdzenie czy trenowanie nie trwało za długo
+    if training_time > max_training_time * 1.2  % 20% tolerancja
+        logWarning('⚠️ Trenowanie trwało długo: %.1fs (limit: %ds)', ...
+            training_time, max_training_time);
+    end
+    
+catch ME
+    training_time = toc(training_start);
+    
+    % Sprawdź czy to może być timeout
+    if training_time > max_training_time
+        logWarning('⏰ Możliwy timeout po %.1fs - parametry: [%s], %s', ...
+            training_time, mat2str(params.hidden_layers), params.train_function);
+    end
+    
+    % Re-throw error
+    rethrow(ME);
+end
 
 % Obliczenie accuracy
 outputs = net(X');

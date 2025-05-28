@@ -1,0 +1,11 @@
+=== GOLDEN PARAMETERS - 96.8% ACCURACY ===
+Znalezione w iteracji: 6
+Data: 28-May-2025 13:31:47
+
+PARAMETRY:
+Architektura: 17
+Funkcja treningu: trainbr
+Learning rate: 0.012000
+Funkcja aktywacji: logsig
+Epoki: 200
+Accuracy: 0.9682 (96.8%)

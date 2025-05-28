@@ -105,6 +105,38 @@ try
         end
     end
     
+    % =====================================================================
+    % STATYSTYKI TIMEOUT'ÓW
+    % =====================================================================
+    timeout_count = 0;
+    total_training_time = 0;
+    max_training_time = 0;
+    
+    for i = 1:length(random_results)
+        if isfield(random_results(i), 'timeout') && random_results(i).timeout
+            timeout_count = timeout_count + 1;
+        end
+        if isfield(random_results(i), 'training_time')
+            time = random_results(i).training_time;
+            total_training_time = total_training_time + time;
+            max_training_time = max(max_training_time, time);
+        end
+    end
+    
+    if timeout_count > 0
+        logInfo('');
+        logInfo('⏰ STATYSTYKI TIMEOUT:');
+        logInfo('=======================');
+        logInfo('   🕐 Timeout''y: %d/%d (%.1f%%)', timeout_count, length(random_results), ...
+            100*timeout_count/length(random_results));
+        logInfo('   ⏱️ Średni czas treningu: %.1f sekund', total_training_time/length(random_results));
+        logInfo('   ⚡ Najdłuższy czas: %.1f sekund', max_training_time);
+        
+        if timeout_count > length(random_results) * 0.2
+            logWarning('⚠️ Dużo timeout''ów (>20%%) - rozważ zwięksenie timeout_per_iteration');
+        end
+    end
+    
 catch ME
     logError('❌ Błąd tworzenia raportu Random Search: %s', ME.message);
 end

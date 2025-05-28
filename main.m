@@ -30,7 +30,8 @@ output_dirs = {
     'output\networks',
     'output\results',
     'output\preprocessed',
-    'output\logs'
+    'output\logs',
+    'output\golden'  % ⭐ NOWY katalog na Golden Parameters
     };
 
 % Lista plików .gitkeep do utworzenia
@@ -38,7 +39,8 @@ gitkeep_files = {
     'output\networks\.gitkeep',
     'output\results\.gitkeep',
     'output\preprocessed\.gitkeep',
-    'output\logs\.gitkeep'
+    'output\logs\.gitkeep',
+    'output\golden\.gitkeep'  % ⭐ NOWY gitkeep
     };
 
 % Tworzenie katalogów jeśli nie istnieją

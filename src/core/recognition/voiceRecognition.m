@@ -177,6 +177,66 @@ logSuccess('⚡ Optymalizacja %s zakończona w %.1f s (%.1f min)', ...
     upper(selected_method), optimization_time, optimization_time/60);
 
 % =========================================================================
+% KROK 2.5: SPRAWDZENIE CZY ZNALEZIONO GOLDEN PARAMETERS
+% =========================================================================
+
+% Sprawdź czy Random Search znalazł Golden Parameters (95%+)
+if strcmp(selected_method, 'random_search') && ...
+        isfield(results, 'best_accuracy') && ...
+        results.best_accuracy >= 0.95
+    
+    logSuccess('💎 ZNALEZIONO GOLDEN PARAMETERS! Accuracy: %.1f%%', ...
+        results.best_accuracy*100);
+    
+    % Użyj Golden Parameters do stworzenia finalnej sieci
+    logInfo('🚀 Tworzenie finalnej sieci z Golden Parameters...');
+    
+    golden_params = results.best_params;
+    
+    % Stwórz finalną sieć z najlepszymi parametrami
+    final_net = createNeuralNetwork(...
+        'pattern', ...
+        golden_params.hidden_layers, ...
+        golden_params.train_function, ...
+        golden_params.activation_function, ...
+        golden_params.learning_rate, ...
+        golden_params.epochs, ...
+        1e-6);
+    
+    % Wytrenuj finalną sieć na WSZYSTKICH danych
+    logInfo('🎯 Trenowanie finalnej sieci na pełnym zbiorze danych...');
+    final_training_start = tic;
+    
+    final_net = train(final_net, X', Y');
+    
+    final_training_time = toc(final_training_start);
+    
+    % Testuj finalną sieć
+    final_outputs = final_net(X');
+    final_accuracy = sum(vec2ind(final_outputs) == vec2ind(Y')) / size(Y, 1);
+    
+    logSuccess('🏆 FINALNA SIEĆ - Accuracy: %.1f%% (czas: %.1fs)', ...
+        final_accuracy*100, final_training_time);
+    
+    % Zapisz finalną sieć
+    timestamp = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
+    final_net_filename = sprintf('output/networks/FINAL_GOLDEN_NETWORK_%.1f%%_%s.mat', ...
+        final_accuracy*100, timestamp);
+    
+    save(final_net_filename, 'final_net', 'golden_params', 'final_accuracy');
+    logSuccess('💾 Finalna sieć zapisana: %s', final_net_filename);
+    
+    % Aktualizuj best_model na finalną sieć
+    best_model = final_net;
+    results.final_accuracy = final_accuracy;
+    results.golden_parameters_used = true;
+    
+else
+    logInfo('ℹ️ Nie znaleziono Golden Parameters (95%+). Używam najlepszego wyniku.');
+    results.golden_parameters_used = false;
+end
+
+% =========================================================================
 % KROK 3: PODSUMOWANIE CAŁEGO PROCESU
 % =========================================================================
 
