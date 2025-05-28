@@ -120,61 +120,28 @@ loading_time = toc(loading_start);
 displayLoadingSummary(loading_time, successful_loads, failed_loads);
 
 % =========================================================================
-% KONFIGURACJA OPTYMALIZACJI SIECI - WYBÓR METODY
+% OPTYMALIZACJA HIPERPARAMETRÓW - TYLKO RANDOM SEARCH
 % =========================================================================
 
-% DOSTĘPNE METODY OPTYMALIZACJI:
-optimization_methods = {
-    'grid_search',    % Systematyczne przeszukiwanie wszystkich kombinacji
-    'random_search',  % Losowe próbkowanie z przestrzeni parametrów
-    'bayesian',       % Inteligentne przeszukiwanie Bayesowskie
-    'genetic',        % Algorytm ewolucyjny
-    'adam'           % ✨ NOWY: Optymalizacja z Deep Learning Toolbox ADAM
-    };
+logInfo('🔍 Rozpoczynam optymalizację hiperparametrów...');
 
-% WYBÓR METODY (zmień tutaj):
-selected_method = 'random_search';  % ✨ Użyj ADAM!
+% JEDNA METODA: Random Search z Golden Parameters Discovery
+selected_method = 'random_search';  % 🎲 Sprawdzona metoda!
 
-% Walidacja wyboru
-if ~ismember(selected_method, optimization_methods)
-    logError('Nieznana metoda: %s. Dostępne: %s', selected_method, strjoin(optimization_methods, ', '));
-    selected_method = 'grid_search'; % Fallback
-end
-
-logInfo('🔍 Wybrana metoda optymalizacji: %s', upper(selected_method));
+logInfo('🎲 Metoda optymalizacji: RANDOM SEARCH');
+logInfo('💎 Cel: znalezienie Golden Parameters (95%+)');
 
 optimization_start = tic;
-switch selected_method
-    case 'grid_search'
-        logInfo('🔍 Uruchamianie przeszukiwania siatki...');
-        [results, best_model] = gridSearchOptimizer(X, Y, labels);
-        
-    case 'random_search'
-        logInfo('🎲 Uruchamianie losowego przeszukiwania...');
-        [results, best_model] = randomSearchOptimizer(X, Y, labels);
-        
-    case 'bayesian'
-        logInfo('📈 Uruchamianie optymalizacji bayesowskiej...');
-        [results, best_model] = bayesianOptimizer(X, Y, labels);
-        
-    case 'genetic'
-        logInfo('🧬 Uruchamianie algorytmu genetycznego...');
-        [results, best_model] = geneticOptimizer(X, Y, labels);
-        
-    case 'adam'
-        logInfo('🚀 Uruchamianie optymalizacji ADAM...');
-        config = adamConfig();
-        displayAdamConfig(config, X, Y, labels);
-        [results, best_model] = adamOptimizer(X, Y, labels, config);
-        
-    otherwise
-        logError('Nieznana metoda: %s', selected_method);
-        return;
-end
+
+% Random Search z konfiguracją
+config = randomSearchConfig();
+displayRandomSearchConfig(config, X, Y, labels);  % ⚠️ DODAJ tę funkcję!
+[results, best_model] = randomSearchOptimizer(X, Y, labels, config);
+
 optimization_time = toc(optimization_start);
 
-logSuccess('⚡ Optymalizacja %s zakończona w %.1f s (%.1f min)', ...
-    upper(selected_method), optimization_time, optimization_time/60);
+logSuccess('⚡ Optymalizacja zakończona w %.1f sekund (%.1f minut)', ...
+    optimization_time, optimization_time/60);
 
 % =========================================================================
 % KROK 2.5: SPRAWDZENIE CZY ZNALEZIONO GOLDEN PARAMETERS
@@ -261,3 +228,42 @@ end
 displayFinalSummary(total_start, loading_time, final_params, ...
     noise_level, num_samples, use_vowels, use_complex, ...
     normalize_features, data_file);
+
+% ===== FINALNE TESTOWANIE Z WIZUALIZACJĄ =====
+if strcmp(selected_method, 'random_search') && ...
+        isfield(results, 'best_accuracy') && ...
+        results.best_accuracy >= 0.95 && ...
+        results.golden_parameters_used
+    
+    logInfo('🎯 ROZPOCZYNAM FINALNE TESTOWANIE Z GOLDEN PARAMETERS...');
+    logInfo('💎 Trenowanie finalnej sieci z OKNEM trenowania...');
+    
+    % ===== TRENUJ FINALNĄ SIEĆ Z OKNEM =====
+    final_net = trainFinalNetwork(X, Y, golden_params);
+    
+    % Testowanie finalnej sieci
+    final_results = testFinalNetwork(final_net, X, Y, labels, golden_params);
+    
+    % ===== TYLKO MACIERZ KONFUZJI =====
+    if exist('src/utils/visualization', 'dir')
+        addpath('src/utils/visualization');
+        
+        % SPRAWDŹ JAKIE FUNKCJE MASZ W VISUALIZATION
+        vis_files = dir('src/utils/visualization/*.m');
+        if ~isempty(vis_files)
+            logInfo('📊 Dostępne funkcje wizualizacji:');
+            for i = 1:length(vis_files)
+                logInfo('   - %s', vis_files(i).name);
+            end
+        end
+        
+        % UŻYJ ISTNIEJĄCEJ FUNKCJI MACIERZY KONFUZJI
+        plotConfusionMatrix(final_results.true_labels, final_results.predictions, labels, ...
+            sprintf('Macierz Konfuzji - Golden Parameters (%.1f%%)', final_results.accuracy*100));
+    end
+    
+    logSuccess('📊 Wyświetlono macierz konfuzji dla Golden Parameters!');
+    
+else
+    logInfo('ℹ️ Standardowe testowanie - brak Golden Parameters lub accuracy < 95%%');
+end

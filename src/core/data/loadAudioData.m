@@ -191,44 +191,8 @@ if use_vowels
             catch ME
                 failed_loads = failed_loads + 1;
                 logError('❌ Błąd w pliku %s: %s', file_path, ME.message);
-                
-                % SZCZEGÓŁOWE LOGOWANIE BŁĘDÓW FILTRÓW ADAPTACYJNYCH:
-                if contains(ME.message, 'M_rls') || contains(ME.message, 'RLS')
-                    logError('SZCZEGÓŁY BŁĘDU RLS:');
-                    logError('  - Plik: %s', file_path);
-                    logError('  - Komunikat: %s', ME.message);
-                    if length(ME.stack) > 0
-                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
-                    end
-                elseif contains(ME.message, 'M_lms') || contains(ME.message, 'LMS')
-                    logError('SZCZEGÓŁY BŁĘDU LMS:');
-                    logError('  - Plik: %s', file_path);
-                    logError('  - Komunikat: %s', ME.message);
-                    if length(ME.stack) > 0
-                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
-                    end
-                elseif contains(ME.message, 'M_nlms') || contains(ME.message, 'NLMS')
-                    logError('SZCZEGÓŁY BŁĘDU NLMS:');
-                    logError('  - Plik: %s', file_path);
-                    logError('  - Komunikat: %s', ME.message);
-                    if length(ME.stack) > 0
-                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
-                    end
-                elseif contains(ME.message, 'Argument must be') || contains(ME.message, 'Matrix dimensions')
-                    logError('SZCZEGÓŁY BŁĘDU MACIERZY/ARGUMENTÓW:');
-                    logError('  - Plik: %s', file_path);
-                    logError('  - Komunikat: %s', ME.message);
-                    if length(ME.stack) > 0
-                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
-                    end
-                else
-                    % OGÓLNY BŁĄD
-                    logError('SZCZEGÓŁY BŁĘDU OGÓLNEGO:');
-                    logError('  - Plik: %s', file_path);
-                    logError('  - Komunikat: %s', ME.message);
-                    if length(ME.stack) > 0
-                        logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
-                    end
+                if ~isempty(ME.stack)
+                    logError('  - Funkcja: %s, linia: %d', ME.stack(1).name, ME.stack(1).line);
                 end
             end
         end

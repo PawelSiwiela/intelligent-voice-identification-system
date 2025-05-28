@@ -143,10 +143,8 @@ end
 % =========================================================================
 
 %fprintf('🔧 Optymalizacja parametrów filtru NLMS...\n');
-too_slow_nlms = false;
-
 for M_test = M_range
-    if too_slow_nlms
+    if too_slow_lms
         break;
     end
     
@@ -181,7 +179,7 @@ for M_test = M_range
                 
                 % Sprawdzenie kryterium czasowego
                 if execution_time > max_acceptable_time
-                    too_slow_nlms = true;
+                    too_slow_lms = true;
                     break;
                 end
                 
@@ -209,7 +207,7 @@ for M_test = M_range
             end
         end
         
-        if too_slow_nlms
+        if too_slow_lms
             break;
         end
     end
@@ -220,17 +218,15 @@ end
 % =========================================================================
 
 %fprintf('🔧 Optymalizacja parametrów filtru RLS...\n');
-too_slow_rls = false;
-
 for M_test = M_range
     logDebug('Testowanie filtru RLS: M=%d', M_test);
     
-    if too_slow_rls
+    if too_slow_lms
         break;
     end
     
     for lambda_test = lambda_range
-        if too_slow_rls
+        if too_slow_lms
             break;
         end
         
@@ -274,7 +270,7 @@ for M_test = M_range
             
             % Sprawdzenie kryterium czasowego
             if execution_time > max_acceptable_time
-                too_slow_rls = true;
+                too_slow_lms = true;
                 break;
             end
             

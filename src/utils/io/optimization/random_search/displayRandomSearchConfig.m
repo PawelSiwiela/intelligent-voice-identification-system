@@ -1,63 +1,33 @@
 function displayRandomSearchConfig(config, X, Y, labels)
 % =========================================================================
-% WYŚWIETLENIE KONFIGURACJI RANDOM SEARCH
+% WYŚWIETLANIE KONFIGURACJI RANDOM SEARCH
 % =========================================================================
 
-logInfo('📊 Konfiguracja Random Search:');
+logInfo('');
+logInfo('🎲 ===== KONFIGURACJA RANDOM SEARCH =====');
+logInfo('📊 Rozmiar danych: %d próbek, %d cech, %d kategorii', ...
+    size(X,1), size(X,2), length(labels));
+logInfo('🔄 Maksimum iteracji: %d', config.max_iterations);
+logInfo('📈 Learning rates: %d opcji [%.3f - %.3f]', ...
+    length(config.learning_rates), min(config.learning_rates), max(config.learning_rates));
+logInfo('🧠 Architektury: %d opcji', length(config.hidden_layers_options));
+logInfo('⚙️ Funkcje treningu: %d opcji (%s)', ...
+    length(config.training_functions), strjoin(config.training_functions, ', '));
+logInfo('🎯 Cel: znaleźć Golden Parameters (95%%+)');
+logInfo('⏰ Timeout per iteracja: %d sekund', config.timeout_per_iteration);
 
-% Podstawowe parametry
-logInfo('   🎲 Max iteracji: %d', config.max_iterations);
+% Obliczenie możliwych kombinacji
+total_combinations = length(config.learning_rates) * ...
+    length(config.hidden_layers_options) * ...
+    length(config.training_functions) * ...
+    length(config.activation_functions) * ...
+    length(config.epochs_range);
 
-if isfield(config, 'random_seed')
-    logInfo('   🔢 Random seed: %d', config.random_seed);
-end
+hit_probability = config.max_iterations / total_combinations * 100;
 
-% Architektury
-if isfield(config, 'network_architectures')
-    arch_str = strjoin(config.network_architectures, ', ');
-    logInfo('   🏗️ Architektury: %s', arch_str);
-end
-
-% Warstwy ukryte
-if isfield(config, 'hidden_layers_options')
-    logInfo('   🧠 Warstwy ukryte: %d opcji', length(config.hidden_layers_options));
-end
-
-% Funkcje trenowania
-if isfield(config, 'training_functions')
-    train_str = strjoin(config.training_functions, ', ');
-    logInfo('   ⚙️ Funkcje trenowania: %s', train_str);
-end
-
-% Learning rates
-if isfield(config, 'learning_rates')
-    logInfo('   📈 Learning rates: %d opcji', length(config.learning_rates));
-end
-
-% Early stopping
-if isfield(config, 'early_stopping') && config.early_stopping
-    if isfield(config, 'patience')
-        logInfo('   🛑 Early stopping: TAK (patience: %d)', config.patience);
-    else
-        logInfo('   🛑 Early stopping: TAK');
-    end
-else
-    logInfo('   🛑 Early stopping: NIE');
-end
-
-% Informacje o danych
-if nargin >= 4
-    [num_samples, num_features] = size(X);
-    num_classes = length(labels);
-    logInfo('');
-    logInfo('📈 Dane wejściowe: %d próbek × %d cech → %d klas', ...
-        num_samples, num_features, num_classes);
-end
-
-% Szacowany czas
-if isfield(config, 'max_iterations')
-    estimated_time = config.max_iterations * 5; % 5 sekund na iterację
-    logInfo('⏱️ Szacowany czas: ~%.1f minut', estimated_time/60);
-end
+logInfo('📊 Możliwych kombinacji: %d', total_combinations);
+logInfo('📈 Pokrycie przestrzeni: %.4f%%', hit_probability);
+logInfo('==========================================');
+logInfo('');
 
 end

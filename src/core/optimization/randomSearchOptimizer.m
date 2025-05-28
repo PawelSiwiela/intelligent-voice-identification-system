@@ -90,6 +90,7 @@ for i = 1:config.max_iterations
         end
         
         if timeout_occurred
+            timeout_count = timeout_count + 1;  % DODAJ TEN LICZNIK
             logDebug('   ⏰ TIMEOUT - wynik: %.1f%% (czas: %.1fs)', accuracy*100, iteration_time);
         else
             logDebug('   ✅ Accuracy: %.1f%% (czas: %.1fs)', accuracy*100, iteration_time);
@@ -172,6 +173,7 @@ net = patternnet(params.hidden_layers, params.train_function);
 % ===== KLUCZOWE - WYŁĄCZENIE WSZYSTKICH PLOTÓW =====
 net.trainParam.showWindow = false;        % ⚠️ NAJWAŻNIEJSZE!
 net.trainParam.showCommandLine = false;   % Wyłącz output w command line
+net.trainParam.show = NaN;
 net.plotFcns = {};                        % Usuń wszystkie funkcje plotów
 
 % Parametry treningu

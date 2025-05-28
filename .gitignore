@@ -44,6 +44,7 @@ Thumbs.db
 output/preprocessed/*.mat
 output/networks/*.mat
 output/results/*
+output/golden/*
 
 # Log files
 output/logs/*.log
@@ -54,3 +55,4 @@ output/logs/*.txt
 !output/networks/.gitkeep  
 !output/results/.gitkeep
 !output/logs/.gitkeep
+!output/golden/.gitkeep

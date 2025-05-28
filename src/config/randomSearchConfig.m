@@ -1,7 +1,7 @@
 % Nowy plik: src/config/optimization/randomSearchConfig.m
 function config = randomSearchConfig()
 % =========================================================================
-% RANDOM SEARCH CONFIG - MINIMALNA WERSJA
+% RANDOM SEARCH CONFIG - OCZYSZCZONA WERSJA
 % =========================================================================
 
 config = struct();
@@ -18,7 +18,6 @@ config.learning_rates = [
     0.08, 0.09, 0.1, 0.12, 0.15
     ];
 
-% Architektury sieci - szeroki zakres
 config.hidden_layers_options = {
     [12], [13], [14], [15], [16], [17], [18], ...
     [22], [23], [24], [25], [26], [27], [28], ...
@@ -26,20 +25,14 @@ config.hidden_layers_options = {
     [40], [41], [42], [43], [44], [45], [46], ...
     };
 
-% Funkcje trenowania - wszystkie równoprawne
 config.training_functions = {
     'trainbr',    % Bayesian Regularization
     'trainlm',    % Levenberg-Marquardt
     'trainscg',   % Scaled Conjugate Gradient
     };
 
-% Funkcje aktywacji - wszystkie równoprawne
-config.activation_functions = {
-    'logsig',     % Logistic Sigmoid
-    %'tansig',     % Hyperbolic Tangent Sigmoid
-    };
+config.activation_functions = {'logsig'};
 
-% Parametry trenowania - losowy zakres
 config.epochs_range = [100, 150, 200];
 config.validation_checks_range = [10, 15];
 
@@ -49,20 +42,10 @@ config.val_ratios = [0.15, 0.2];
 config.test_ratios = [0.05, 0.1];
 
 % =========================================================================
-% POLA KOMPATYBILNOŚCI Z SYSTEMEM
+% PODSTAWOWE USTAWIENIA SYSTEMU
 % =========================================================================
 config.network_architectures = {'pattern'};
-config.use_cross_validation = false;
-config.cv_folds = 1;
 config.use_simple_split = true;
-config.multiple_runs_per_config = 1;
-config.take_best_of_runs = true;
-config.average_results = false;
-config.max_combinations = config.max_iterations;
-config.max_training_time = 60;
-config.timeout_per_config = 45;
-
-% Główne ratio (dla kompatybilności)
 config.train_ratio = 0.8;
 config.test_ratio = 0.2;
 
@@ -76,15 +59,15 @@ config.primary_metric = 'accuracy';
 config.secondary_metrics = {'precision', 'recall', 'f1_score'};
 
 % Random search specific
-config.random_seed = randi(10000);  % Losowy seed za każdym razem
+config.random_seed = randi(10000);
 config.early_stopping = true;
-config.patience = 30;  % Mniejsza cierpliwość dla random search
+config.patience = 30;
 
 % ===== TIMEOUT PARAMETERS =====
-config.timeout_per_iteration = 45;   % 45 sekund na jeden zestaw parametrów
-config.max_total_time = 3600;        % 1 godzina maksymalny czas całego search
-config.timeout_action = 'skip';      % 'skip' lub 'abort' - co robić przy timeout
-config.show_timeout_warnings = true; % Pokazuj ostrzeżenia o timeout
+config.timeout_per_iteration = 45;
+config.max_total_time = 3600;
+config.timeout_action = 'skip';
+config.show_timeout_warnings = true;
 
 % =========================================================================
 % ALIASY DLA KOMPATYBILNOŚCI Z sampleRandomParameters.m
