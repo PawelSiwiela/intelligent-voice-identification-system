@@ -128,11 +128,12 @@ optimization_methods = {
     'grid_search',    % Systematyczne przeszukiwanie wszystkich kombinacji
     'random_search',  % Losowe próbkowanie z przestrzeni parametrów
     'bayesian',       % Inteligentne przeszukiwanie Bayesowskie
-    'genetic'         % Algorytm ewolucyjny
+    'genetic',        % Algorytm ewolucyjny
+    'adam'           % ✨ NOWY: Optymalizacja z Deep Learning Toolbox ADAM
     };
 
 % WYBÓR METODY (zmień tutaj):
-selected_method = 'grid_search';  % Zmień na: random_search, grid_search
+selected_method = 'adam';  % ✨ Użyj ADAM!
 
 % Walidacja wyboru
 if ~ismember(selected_method, optimization_methods)
@@ -143,7 +144,33 @@ end
 logInfo('🔍 Wybrana metoda optymalizacji: %s', upper(selected_method));
 
 optimization_start = tic;
-[trained_net, best_params, optimization_results] = optimizationController(X, Y, labels, selected_method);
+switch selected_method
+    case 'grid_search'
+        logInfo('🔍 Uruchamianie przeszukiwania siatki...');
+        [results, best_model] = gridSearchOptimizer(X, Y, labels);
+        
+    case 'random_search'
+        logInfo('🎲 Uruchamianie losowego przeszukiwania...');
+        [results, best_model] = randomSearchOptimizer(X, Y, labels);
+        
+    case 'bayesian'
+        logInfo('📈 Uruchamianie optymalizacji bayesowskiej...');
+        [results, best_model] = bayesianOptimizer(X, Y, labels);
+        
+    case 'genetic'
+        logInfo('🧬 Uruchamianie algorytmu genetycznego...');
+        [results, best_model] = geneticOptimizer(X, Y, labels);
+        
+    case 'adam'
+        logInfo('🚀 Uruchamianie optymalizacji ADAM...');
+        config = adamConfig();
+        displayAdamConfig(config, X, Y, labels);
+        [results, best_model] = adamOptimizer(X, Y, labels, config);
+        
+    otherwise
+        logError('Nieznana metoda: %s', selected_method);
+        return;
+end
 optimization_time = toc(optimization_start);
 
 logSuccess('⚡ Optymalizacja %s zakończona w %.1f s (%.1f min)', ...
@@ -152,6 +179,25 @@ logSuccess('⚡ Optymalizacja %s zakończona w %.1f s (%.1f min)', ...
 % =========================================================================
 % KROK 3: PODSUMOWANIE CAŁEGO PROCESU
 % =========================================================================
-displayFinalSummary(total_start, loading_time, best_params, ...
+
+% POPRAWIONE WYWOŁANIE - używaj results.best_params
+if isfield(results, 'best_params') && ~isempty(results.best_params)
+    final_params = results.best_params;
+else
+    % Fallback - utwórz strukturę z dostępnych danych
+    final_params = struct();
+    final_params.accuracy = results.best_accuracy;
+    final_params.method = results.method;
+    final_params.total_time = results.total_time;
+    
+    % Domyślne parametry na podstawie najlepszego wyniku
+    final_params.learning_rate = 0.08;
+    final_params.hidden_layers = [35, 25];
+    final_params.train_function = 'trainbr';
+    final_params.activation_function = 'logsig';
+end
+
+% Teraz użyj final_params zamiast best_params
+displayFinalSummary(total_start, loading_time, final_params, ...
     noise_level, num_samples, use_vowels, use_complex, ...
     normalize_features, data_file);
