@@ -31,11 +31,24 @@ try
     top_count = min(5, length(sorted_results));
     for i = 1:top_count
         result = sorted_results(i);
-        if isfield(result, 'accuracy') && isfield(result, 'network_architecture')
-            logInfo('%d. %.1f%% - %s, layers=%s, %s, lr=%.3f', ...
-                i, result.accuracy*100, result.network_architecture, ...
-                mat2str(result.hidden_layers), result.training_function, ...
-                result.learning_rate);
+        if isfield(result, 'accuracy')
+            log_msg = sprintf('%d. %.1f%%', i, result.accuracy*100);
+            
+            % Dodaj dostępne informacje
+            if isfield(result, 'architecture')
+                log_msg = [log_msg, sprintf(' - %s', result.architecture)];
+            end
+            if isfield(result, 'hidden_layers')
+                log_msg = [log_msg, sprintf(', layers=%s', mat2str(result.hidden_layers))];
+            end
+            if isfield(result, 'train_function')
+                log_msg = [log_msg, sprintf(', %s', result.train_function)];
+            end
+            if isfield(result, 'learning_rate')
+                log_msg = [log_msg, sprintf(', lr=%.3f', result.learning_rate)];
+            end
+            
+            logInfo(log_msg);
         end
     end
     

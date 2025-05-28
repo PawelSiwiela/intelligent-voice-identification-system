@@ -15,11 +15,11 @@ params.hidden_layers = config.hidden_layers_options{hidden_idx};
 
 % Losowa funkcja trenowania
 train_idx = randi(length(config.training_functions));
-params.train_func = config.training_functions{train_idx};
+params.train_function = config.training_functions{train_idx};
 
 % Losowa funkcja aktywacji
 act_idx = randi(length(config.activation_functions));
-params.activation_func = config.activation_functions{act_idx};
+params.activation_function = config.activation_functions{act_idx};
 
 % Losowy learning rate
 lr_idx = randi(length(config.learning_rates));
@@ -35,6 +35,6 @@ params.goal = config.performance_goals(goal_idx);
 
 logDebug('🎲 Wylosowano: %s [%s], %s, lr=%.3f', ...
     params.architecture, mat2str(params.hidden_layers), ...
-    params.train_func, params.learning_rate);
+    params.train_function, params.learning_rate);  % POPRAWIONE!
 
 end

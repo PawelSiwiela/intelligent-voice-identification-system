@@ -133,7 +133,7 @@ optimization_methods = {
     };
 
 % WYBÓR METODY (zmień tutaj):
-selected_method = 'adam';  % ✨ Użyj ADAM!
+selected_method = 'random_search';  % ✨ Użyj ADAM!
 
 % Walidacja wyboru
 if ~ismember(selected_method, optimization_methods)

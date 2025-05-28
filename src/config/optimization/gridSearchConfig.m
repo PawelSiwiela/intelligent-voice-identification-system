@@ -72,7 +72,7 @@ config.test_ratio = 0.2;
 % WYMAGANE POLA (dla kompatybilności)
 % =========================================================================
 config.save_results = true;
-config.create_plots = true;
+config.create_plots = false;
 config.verbose_logging = true;
 config.results_dir = 'output/results';
 config.networks_dir = 'output/networks';

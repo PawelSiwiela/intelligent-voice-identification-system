@@ -1,104 +1,68 @@
 % src/core/optimization/randomSearchOptimizer.m
-function [best_model, best_params, results] = randomSearchOptimizer(X, Y, labels, custom_config)
+function [results, best_model] = randomSearchOptimizer(X, Y, labels, config)
 % =========================================================================
-% OPTYMALIZATOR RANDOM SEARCH - LOSOWE PRZESZUKIWANIE
+% RANDOM SEARCH OPTIMIZER - PRAWDZIWY RANDOM SEARCH
 % =========================================================================
 
-% Wczytanie konfiguracji
-if isempty(custom_config)
+if nargin < 4
     config = randomSearchConfig();
-else
-    config = custom_config;
 end
 
-logInfo('🎲 Random Search: losowe próbkowanie %d kombinacji', config.max_iterations);
-displayRandomSearchConfig(config, X, Y, labels);
+logInfo('🎲 Rozpoczynam Random Search z %d iteracjami', config.max_iterations);
 
-% Przygotowanie danych
-[num_samples, num_features] = size(X);
-num_classes = size(Y, 2);
-validateInputData(X, Y, labels);
+% Inicjalizacja
+random_results = [];
+best_accuracy = 0;
+best_params = struct();
+best_model = [];
+optimization_start = tic;
 
-% =========================================================================
-% INICJALIZACJA RANDOM SEARCH
-% =========================================================================
-
-% Ustawienie seed dla powtarzalności
+% Ustawienie random seed jeśli podano
 if isfield(config, 'random_seed')
     rng(config.random_seed);
-    logInfo('🔢 Random seed: %d', config.random_seed);
 end
 
-random_search_start = tic;
-
-% Inicjalizacja wyników
-best_accuracy = 0;
-best_model = [];
-best_params = struct();
-random_results = [];
-iterations_without_improvement = 0;
-
-% =========================================================================
-% GŁÓWNA PĘTLA RANDOM SEARCH
-% =========================================================================
-
+% ===== GŁÓWNA PĘTLA RANDOM SEARCH =====
 for i = 1:config.max_iterations
-    % Progress report co 20 iteracji
-    if mod(i, 20) == 0 || i == 1
-        elapsed = toc(random_search_start);
-        remaining = (elapsed / i) * (config.max_iterations - i);
-        logInfo('⏳ Random Search: %d/%d (%.1f%%) | Czas: %.1fs | Pozostało: ~%.1fs', ...
-            i, config.max_iterations, 100*i/config.max_iterations, elapsed, remaining);
-    end
+    % Losowanie parametrów
+    params = sampleRandomParameters(config);
+    
+    logInfo('🧠 Test %d/%d: [%s], %s, lr=%.3f', ...
+        i, config.max_iterations, mat2str(params.hidden_layers), ...
+        params.train_function, params.learning_rate);
     
     try
-        % =====================================================================
-        % LOSOWY WYBÓR PARAMETRÓW - UŻYJ NOWEJ FUNKCJI
-        % =====================================================================
+        % Trenowanie z wylosowanymi parametrami
+        [net, accuracy] = trainWithRandomParams(X, Y, params);
         
-        params = sampleRandomParameters(config);
+        % Zapisanie wyniku
+        result = params;
+        result.accuracy = accuracy;
+        result.iteration = i;
+        result.network = net;
         
-        % =====================================================================
-        % TEST KONFIGURACJI
-        % =====================================================================
-        
-        % POPRAWIONE WYWOŁANIE - z parametrami ze struktury
-        test_result = testSingleConfiguration(X, Y, ...
-            params.architecture, params.hidden_layers, params.train_func, params.activation_func, ...
-            params.learning_rate, params.epochs, params.goal, [], i);
-        
-        % Sprawdzenie czy test_result ma wymagane pola
-        if ~isfield(test_result, 'accuracy')
-            logWarning('⚠️ test_result nie zawiera pola accuracy dla iteracji %d', i);
-            continue;
-        end
-        
-        random_results = [random_results; test_result];
-        
-        % =====================================================================
-        % SPRAWDZENIE CZY TO NAJLEPSZY WYNIK
-        % =====================================================================
-        
-        if test_result.accuracy > best_accuracy
-            improvement = test_result.accuracy - best_accuracy;
-            best_accuracy = test_result.accuracy;
-            best_params = test_result;
-            best_model = test_result.network;
-            iterations_without_improvement = 0;
-            
-            logSuccess('🏆 NOWY REKORD! %.1f%% (+%.3f%%) - iteracja %d', ...
-                best_accuracy*100, improvement*100, i);
+        if isempty(random_results)
+            random_results = result;
         else
-            iterations_without_improvement = iterations_without_improvement + 1;
+            random_results(end+1) = result;
         end
         
-        % =====================================================================
-        % EARLY STOPPING
-        % =====================================================================
+        % Sprawdzenie czy to najlepszy wynik
+        if accuracy > best_accuracy
+            best_accuracy = accuracy;
+            best_params = result;
+            best_model = net;
+            
+            logSuccess('🏆 NOWY REKORD! %.1f%% - [%s], %s, lr=%.3f', ...
+                accuracy*100, mat2str(params.hidden_layers), ...
+                params.train_function, params.learning_rate);
+        end
         
-        if isfield(config, 'early_stopping') && config.early_stopping && ...
-                isfield(config, 'patience') && iterations_without_improvement >= config.patience
-            logInfo('🛑 Early stopping! Brak poprawy przez %d iteracji', config.patience);
+        logDebug('   ✅ Accuracy: %.1f%%', accuracy*100);
+        
+        % Early stopping jeśli osiągnięto cel
+        if isfield(config, 'target_accuracy') && accuracy >= config.target_accuracy
+            logSuccess('🎯 Osiągnięto cel %.1f%%! Zatrzymuję search.', config.target_accuracy*100);
             break;
         end
         
@@ -108,62 +72,56 @@ for i = 1:config.max_iterations
     end
 end
 
-% =========================================================================
-% FINALIZACJA WYNIKÓW
-% =========================================================================
-
-% Zwracanie wyników
+% Finalizacja
 results = struct();
 results.random_results = random_results;
-results.total_time = toc(random_search_start);
+results.total_time = toc(optimization_start);
 results.best_accuracy = best_accuracy;
-results.total_iterations = i;
-results.iterations_without_improvement = iterations_without_improvement;
+results.best_params = best_params;
 results.method = 'random_search';
 
-logSuccess('⚡ Random Search zakończony! Przetestowano %d kombinacji w %.1fs', ...
-    i, results.total_time);
+logSuccess('⚡ Random Search zakończony! Najlepszy wynik: %.1f%%', best_accuracy*100);
 
-% =========================================================================
-% WYŚWIETLENIE I ZAPIS WYNIKÓW - UŻYJ NOWYCH FUNKCJI
-% =========================================================================
-
-% Wyświetlenie najlepszej konfiguracji
-if ~isempty(best_params) && isfield(best_params, 'accuracy')
-    logInfo('');
-    displayBestConfiguration(best_params);
-else
-    logWarning('⚠️ Nie znaleziono żadnej działającej konfiguracji!');
-    
-    % Utwórz pustą strukturę best_params dla bezpieczeństwa
-    if isempty(best_params)
-        best_params = struct();
-        best_params.accuracy = 0;
-        best_params.network_architecture = 'brak';
-        best_params.error_message = 'Wszystkie konfiguracje zakończyły się błędem';
-    end
+% Zapisanie wyników
+if config.save_results && ~isempty(random_results)
+    saveRandomSearchResults(random_results, best_params, best_model, 'random_search', results.total_time);
 end
 
-% Zapisanie wyników do pliku - UŻYJ NOWEJ FUNKCJI
-if isfield(config, 'save_results') && config.save_results && ~isempty(random_results)
-    try
-        logInfo('💾 Zapisywanie wyników Random Search...');
-        saveRandomSearchResults(random_results, best_params, best_model, 'random_search', results.total_time);
-    catch ME
-        logWarning('⚠️ Błąd zapisu wyników: %s', ME.message);
-    end
-end
-
-% Utworzenie raportu - UŻYJ NOWEJ FUNKCJI
+% Tworzenie raportu
 if ~isempty(random_results)
-    try
-        logInfo('📊 Tworzenie raportu Random Search...');
-        createRandomSearchReport(random_results, best_params, 'random_search');
-    catch ME
-        logWarning('⚠️ Błąd tworzenia raportu: %s', ME.message);
-    end
-else
-    logWarning('⚠️ Brak wyników do raportu');
+    createRandomSearchReport(random_results, best_params, 'random_search');
 end
+
+end
+
+function [net, accuracy] = trainWithRandomParams(X, Y, params)
+% Trenowanie sieci z losowymi parametrami - BEZ PLOTÓW!
+
+% Tworzenie sieci
+net = patternnet(params.hidden_layers, params.train_function);
+
+% ===== KLUCZOWE - WYŁĄCZENIE WSZYSTKICH PLOTÓW =====
+net.trainParam.showWindow = false;        % ⚠️ NAJWAŻNIEJSZE!
+net.trainParam.showCommandLine = false;   % Wyłącz output w command line
+net.plotFcns = {};                        % Usuń wszystkie funkcje plotów
+
+% Parametry treningu
+net.trainParam.lr = params.learning_rate;
+net.trainParam.epochs = params.epochs;
+
+if isfield(params, 'performance_goal')
+    net.trainParam.goal = params.performance_goal;
+end
+
+if isfield(params, 'validation_checks')
+    net.trainParam.max_fail = params.validation_checks;
+end
+
+% Trenowanie - teraz bez plotów!
+net = train(net, X', Y');
+
+% Obliczenie accuracy
+outputs = net(X');
+accuracy = sum(vec2ind(outputs) == vec2ind(Y')) / size(Y, 1);
 
 end
