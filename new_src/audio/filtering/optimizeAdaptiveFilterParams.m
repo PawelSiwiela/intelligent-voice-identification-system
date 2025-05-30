@@ -45,7 +45,7 @@ order_weight = 0.01;     % Waga dla złożoności filtru (1%)
 time_weight = 0.04;      % Waga dla szybkości wykonania (4%)
 
 % Maksymalny akceptowalny czas wykonania filtracji (w sekundach)
-max_acceptable_time = 0.3;
+max_acceptable_time = 0.4;
 
 % INICJALIZACJA ZMIENNYCH WYNIKOWYCH
 
