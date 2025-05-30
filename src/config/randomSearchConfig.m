@@ -25,7 +25,7 @@ config.hidden_layers_options = {
 config.training_functions = {
     'trainbr',    % Bayesian Regularization
     'trainlm',    % Levenberg-Marquardt
-    'trainscg',   % Scaled Conjugate Gradient
+    'traingdx',   % Scaled Conjugate Gradient
     };
 
 config.activation_functions = {'logsig'};

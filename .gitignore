@@ -56,3 +56,34 @@ output/logs/*.txt
 !output/results/.gitkeep
 !output/logs/.gitkeep
 !output/golden/.gitkeep
+
+# Test results directory
+test_results/
+
+# Logs directory
+logs/
+
+# Figure files
+*.fig
+*.png
+*.jpg
+*.jpeg
+*.eps
+*.pdf
+*.svg
+
+# MATLAB backups
+*~
+*.bak
+
+# Cache files
+*.cache
+
+# Profiler output
+profile_results.mat
+
+# Dodatkowo dla plików sesji
+*.session.mat
+
+# Pliki tymczasowe VS Code
+.vscode/

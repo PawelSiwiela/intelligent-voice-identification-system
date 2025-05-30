@@ -170,12 +170,6 @@ function [net, accuracy] = trainWithRandomParams(X, Y, params)
 % Tworzenie sieci
 net = patternnet(params.hidden_layers, params.train_function);
 
-% ===== KLUCZOWE - WYŁĄCZENIE WSZYSTKICH PLOTÓW =====
-net.trainParam.showWindow = false;        % ⚠️ NAJWAŻNIEJSZE!
-net.trainParam.showCommandLine = false;   % Wyłącz output w command line
-net.trainParam.show = NaN;
-net.plotFcns = {};                        % Usuń wszystkie funkcje plotów
-
 % Parametry treningu
 net.trainParam.lr = params.learning_rate;
 net.trainParam.epochs = params.epochs;
