@@ -31,10 +31,6 @@ try
     end
     spectral_features.spectral_rolloff = mean(rolloff_points);
     
-    % 3. ZERO CROSSING RATE
-    sign_changes = abs(diff(sign(signal)));
-    spectral_features.zero_crossing_rate = sum(sign_changes) / (2 * length(signal));
-    
     % NOWE 3 CECHY
     
     % Spectral flatness (miara szumu vs ton)
@@ -60,9 +56,11 @@ try
 catch ME
     logWarning('Błąd cech spektralnych: %s', ME.message);
     spectral_features = struct();
-    spectral_features.spectral_centroid = 0; spectral_features.spectral_rolloff = 0;
-    spectral_features.zero_crossing_rate = 0; spectral_features.spectral_flatness = 0;
-    spectral_features.spectral_flux = 0; spectral_features.spectral_bandwidth = 0;
+    spectral_features.spectral_centroid = 0;
+    spectral_features.spectral_rolloff = 0;
+    spectral_features.spectral_flatness = 0;
+    spectral_features.spectral_flux = 0;
+    spectral_features.spectral_bandwidth = 0;
 end
 
 end

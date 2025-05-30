@@ -37,7 +37,6 @@ try
     % NOWE 3 CECHY GLOBALNE
     [~, peak_idx] = max(power_spectrum);
     fft_features.dominant_freq = freq_single(peak_idx);          % Częstotliwość dominująca
-    fft_features.spectral_centroid = sum(freq_single .* power_spectrum') / sum(power_spectrum); % Centroid spektralny
     fft_features.total_energy = sum(power_spectrum);             % Całkowita energia spektralna
     
     logDebug('✅ Cechy FFT: 6 cech');
@@ -45,8 +44,11 @@ try
 catch ME
     logWarning('⚠️ Błąd cech FFT: %s', ME.message);
     fft_features = struct();
-    fft_features.fft_range_1 = 0; fft_features.fft_range_2 = 0; fft_features.fft_range_3 = 0;
-    fft_features.dominant_freq = 0; fft_features.spectral_centroid = 0; fft_features.total_energy = 0;
+    fft_features.fft_range_1 = 0;
+    fft_features.fft_range_2 = 0;
+    fft_features.fft_range_3 = 0;
+    fft_features.dominant_freq = 0;
+    fft_features.total_energy = 0;
 end
 
 end
