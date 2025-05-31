@@ -20,21 +20,49 @@ if nargin < 4
     save_path = '';
 end
 
+% Obliczenie dokładności
+accuracy = sum(diag(confusion_matrix)) / sum(confusion_matrix(:));
+
 try
     % Utworzenie nowej figury
     h = figure('Name', title_text, 'Position', [200, 200, 800, 600]);
     
-    % Obliczenie dokładności
-    accuracy = sum(diag(confusion_matrix)) / sum(confusion_matrix(:));
-    
-    % Utworzenie wykresu
-    cm = confusionchart(confusion_matrix, labels);
-    cm.Title = sprintf('%s (Dokładność: %.2f%%)', title_text, accuracy * 100);
-    cm.ColumnSummary = 'column-normalized';
-    cm.RowSummary = 'row-normalized';
-    
-    % Dostosowanie kolorystyki
-    colormap(parula);
+    try
+        % Próba użycia confusionchart (wymaga Machine Learning Toolbox)
+        cm = confusionchart(confusion_matrix, labels);
+        cm.Title = sprintf('%s (Dokładność: %.2f%%)', title_text, accuracy * 100);
+        cm.ColumnSummary = 'column-normalized';
+        cm.RowSummary = 'row-normalized';
+        
+        % Dostosowanie kolorystyki
+        colormap(parula);
+    catch
+        % Alternatywna metoda wyświetlenia jako heatmapy
+        imagesc(confusion_matrix);
+        colorbar;
+        
+        % Etykiety osi
+        xticks(1:length(labels));
+        yticks(1:length(labels));
+        xticklabels(labels);
+        yticklabels(labels);
+        xlabel('Przewidziana klasa');
+        ylabel('Rzeczywista klasa');
+        
+        % Tytuł z dokładnością
+        title(sprintf('%s (Dokładność: %.2f%%)', title_text, accuracy * 100));
+        
+        % Dodaj wartości do komórek
+        for i = 1:size(confusion_matrix, 1)
+            for j = 1:size(confusion_matrix, 2)
+                if confusion_matrix(i, j) > 0
+                    text(j, i, num2str(confusion_matrix(i, j)), ...
+                        'HorizontalAlignment', 'center', ...
+                        'Color', 'white');
+                end
+            end
+        end
+    end
     
     % Zapisanie wizualizacji jeśli podano ścieżkę
     if ~isempty(save_path)
@@ -53,7 +81,7 @@ try
 catch e
     logWarning('⚠️ Problem z wyświetleniem macierzy konfuzji: %s', e.message);
     
-    % Alternatywna metoda wyświetlenia jako heatmapy
+    % Awaryjny tryb wyświetlania
     try
         h = figure('Name', title_text, 'Position', [200, 200, 800, 600]);
         imagesc(confusion_matrix);
@@ -68,7 +96,6 @@ catch e
         ylabel('Rzeczywista klasa');
         
         % Tytuł z dokładnością
-        accuracy = sum(diag(confusion_matrix)) / sum(confusion_matrix(:));
         title(sprintf('%s (Dokładność: %.2f%%)', title_text, accuracy * 100));
         
         % Dodaj wartości do komórek

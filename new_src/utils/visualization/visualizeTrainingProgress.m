@@ -1,20 +1,27 @@
-function visualizeTrainingProgress(tr, network_name)
+function visualizeTrainingProgress(tr, network_name, save_path)
 % VISUALIZETRAININGPROGRESS Wizualizacja postępu treningu sieci
 %
 % Składnia:
-%   visualizeTrainingProgress(tr, network_name)
+%   visualizeTrainingProgress(tr, network_name, save_path)
 %
 % Argumenty:
 %   tr - dane treningowe zwrócone przez funkcję train
 %   network_name - opcjonalna nazwa sieci (domyślnie 'Sieć neuronowa')
+%   save_path - opcjonalna ścieżka do zapisu wykresu
 
 % Domyślna nazwa sieci
 if nargin < 2
     network_name = 'Sieć neuronowa';
 end
 
+% Domyślnie brak zapisu
+if nargin < 3
+    save_path = '';
+end
+
 try
-    figure('Name', sprintf('Postęp treningu - %s', network_name), 'Position', [200, 200, 1000, 700]);
+    % Utworzenie figury z unikalnym uchwytem
+    h = figure('Name', sprintf('Postęp treningu - %s', network_name), 'Position', [200, 200, 1000, 700]);
     
     % Układ 2x2 dla różnych wizualizacji
     
@@ -99,8 +106,22 @@ try
         'HorizontalAlignment', 'center', ...
         'EdgeColor', 'none');
     
+    % Zapisanie wizualizacji jeśli podano ścieżkę
+    if ~isempty(save_path)
+        % Sprawdzenie czy folder istnieje, jeśli nie - utworzenie
+        viz_dir = fileparts(save_path);
+        if ~exist(viz_dir, 'dir')
+            mkdir(viz_dir);
+            fprintf('📁 Utworzono katalog dla wizualizacji: %s\n', viz_dir);
+        end
+        
+        % Zapisanie figury
+        saveas(h, save_path);
+        fprintf('💾 Zapisano wizualizację treningu do: %s\n', save_path);
+    end
+    
 catch e
-    logError('❌ Błąd podczas generowania wizualizacji treningu: %s', e.message);
+    fprintf('❌ Błąd podczas generowania wizualizacji treningu: %s\n', e.message);
 end
 
 end

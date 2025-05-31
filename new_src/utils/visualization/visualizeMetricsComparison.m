@@ -1,14 +1,15 @@
-function visualizeMetricsComparison(metrics1, metrics2, network1_name, network2_name)
+function visualizeMetricsComparison(metrics1, metrics2, network1_name, network2_name, save_path)
 % VISUALIZEMETRICSCOMPARISON Porównuje wizualnie metryki dwóch sieci
 %
 % Składnia:
-%   visualizeMetricsComparison(metrics1, metrics2, network1_name, network2_name)
+%   visualizeMetricsComparison(metrics1, metrics2, network1_name, network2_name, save_path)
 %
 % Argumenty:
 %   metrics1 - struktura metryk pierwszej sieci
 %   metrics2 - struktura metryk drugiej sieci
 %   network1_name - nazwa pierwszej sieci (np. 'patternnet')
 %   network2_name - nazwa drugiej sieci (np. 'feedforwardnet')
+%   save_path - opcjonalna ścieżka do zapisu wykresu
 
 % Sprawdzanie poprawności argumentów wejściowych
 if nargin < 3
@@ -16,6 +17,11 @@ if nargin < 3
     network2_name = 'Sieć 2';
 elseif nargin < 4
     network2_name = 'Sieć 2';
+end
+
+% Domyślnie brak zapisu
+if nargin < 5
+    save_path = '';
 end
 
 try
@@ -40,7 +46,7 @@ try
         ];
     
     % Pierwszy wykres: porównanie dokładności, precyzji, czułości i F1
-    figure('Name', 'Porównanie metryk', 'Position', [100, 100, 1000, 500]);
+    h = figure('Name', 'Porównanie metryk', 'Position', [100, 100, 1000, 500]);
     
     % Lewy wykres: Metryki klasyfikacji (jako procenty)
     subplot(1, 2, 1);
@@ -81,8 +87,22 @@ try
     text(2, values2(5) + max([values1(5), values2(5)])*0.05, ...
         sprintf('%.2f ms', values2(5)), 'HorizontalAlignment', 'center');
     
+    % Zapisanie wizualizacji jeśli podano ścieżkę
+    if ~isempty(save_path)
+        % Sprawdzenie czy folder istnieje, jeśli nie - utworzenie
+        viz_dir = fileparts(save_path);
+        if ~exist(viz_dir, 'dir')
+            mkdir(viz_dir);
+            fprintf('📁 Utworzono katalog dla wizualizacji: %s\n', viz_dir);
+        end
+        
+        % Zapisanie figury
+        saveas(h, save_path);
+        fprintf('💾 Zapisano wizualizację metryk do: %s\n', save_path);
+    end
+    
 catch e
-    logError('❌ Błąd podczas generowania wizualizacji metryk: %s', e.message);
+    fprintf('❌ Błąd podczas generowania wizualizacji metryk: %s\n', e.message);
 end
 
 end

@@ -41,12 +41,25 @@ if ~isfield(config, 'show_progress')
 end
 
 if ~isfield(config, 'show_command_line')
-    config.show_command_line = false;  % Domyślnie wyłączone
+    config.show_command_line = false;
+end
+
+% Podział danych na treningowe i testowe, jeśli nie podano danych testowych
+if ~isfield(config, 'X_test') || ~isfield(config, 'Y_test')
+    if ~isfield(config, 'test_ratio')
+        config.test_ratio = 0.3;
+    end
+    [X_train, Y_train, X_test, Y_test] = splitData(X, Y, config.test_ratio);
+else
+    X_train = X;
+    Y_train = Y;
+    X_test = config.X_test;
+    Y_test = config.Y_test;
 end
 
 % Transpozycja danych do formatu wymaganego przez Neural Network Toolbox
-X_net = X';
-Y_net = Y';
+X_net = X_train';
+Y_net = Y_train';
 
 % Konfiguracja parametrów trenowania
 net.trainParam.lr = config.learning_rate;          % Współczynnik uczenia
@@ -61,10 +74,10 @@ tic;
 [net, tr] = train(net, X_net, Y_net);
 training_time = toc;
 
-% Ewaluacja sieci
-y_pred = net(X_net);
+% Ewaluacja na danych testowych
+y_pred = net(X_test');
 [~, pred_idx] = max(y_pred, [], 1);
-[~, true_idx] = max(Y_net, [], 1);
+[~, true_idx] = max(Y_test', [], 1);
 accuracy = sum(pred_idx == true_idx) / length(true_idx);
 
 % Obliczenie macierzy konfuzji

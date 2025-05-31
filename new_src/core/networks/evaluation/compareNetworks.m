@@ -27,12 +27,17 @@ logInfo('🧠 Rozpoczynam porównanie sieci patternnet i feedforwardnet...');
 % =========================================================================
 logInfo('🔍 Optymalizacja parametrów dla sieci PATTERNNET');
 
+% Jednokrotny podział danych dla wszystkich sieci
+[X_train, Y_train, X_test, Y_test] = splitData(X, Y, 0.3);
+
 % Konfiguracja dla optymalizatora patternnet
 patternnet_config = config;
-patternnet_config.network_types = {'patternnet'}; % Tylko patternnet
+patternnet_config.network_types = {'patternnet'};
+patternnet_config.X_test = X_test;  % Dodaj dane testowe do konfiguracji
+patternnet_config.Y_test = Y_test;
 
-% Uruchomienie optymalizatora
-[pattern_net, pattern_tr, pattern_results] = randomSearchOptimizer(X, Y, labels, patternnet_config);
+% Uruchomienie optymalizatora patternnet
+[pattern_net, pattern_tr, pattern_results] = randomSearchOptimizer(X_train, Y_train, labels, patternnet_config);
 
 logSuccess('✅ Najlepsza dokładność dla patternnet: %.2f%%', pattern_results.best_accuracy * 100);
 
@@ -43,10 +48,12 @@ logInfo('🔍 Optymalizacja parametrów dla sieci FEEDFORWARDNET');
 
 % Konfiguracja dla optymalizatora feedforwardnet
 feedforward_config = config;
-feedforward_config.network_types = {'feedforwardnet'}; % Tylko feedforwardnet
+feedforward_config.network_types = {'feedforwardnet'};
+feedforward_config.X_test = X_test;
+feedforward_config.Y_test = Y_test;
 
-% Uruchomienie optymalizatora
-[feedforward_net, feedforward_tr, feedforward_results] = randomSearchOptimizer(X, Y, labels, feedforward_config);
+% Uruchomienie optymalizatora feedforwardnet
+[feedforward_net, feedforward_tr, feedforward_results] = randomSearchOptimizer(X_train, Y_train, labels, feedforward_config);
 
 logSuccess('✅ Najlepsza dokładność dla feedforwardnet: %.2f%%', feedforward_results.best_accuracy * 100);
 
@@ -60,13 +67,13 @@ eval_config = struct(...
     'show_confusion_matrix', false, ...
     'show_roc_curve', false);
 
-% Ewaluacja patternnet
+% Ewaluacja patternnet na danych testowych
 eval_config.figure_title = 'Ewaluacja Patternnet';
-pattern_evaluation = evaluateNetwork(pattern_net, X, Y, labels, eval_config);
+pattern_evaluation = evaluateNetwork(pattern_net, X_test, Y_test, labels, eval_config);
 
-% Ewaluacja feedforwardnet
+% Ewaluacja feedforwardnet na danych testowych
 eval_config.figure_title = 'Ewaluacja Feedforwardnet';
-feedforward_evaluation = evaluateNetwork(feedforward_net, X, Y, labels, eval_config);
+feedforward_evaluation = evaluateNetwork(feedforward_net, X_test, Y_test, labels, eval_config);
 
 % Zapisanie wyników ewaluacji
 comparison_results.patternnet.evaluation = pattern_evaluation;

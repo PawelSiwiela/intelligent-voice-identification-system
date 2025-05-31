@@ -52,7 +52,7 @@ if isempty(LOG_FILE_HANDLE) || LOG_FILE_HANDLE == -1
         end
         
         % Przygotuj nazwę pliku logu na podstawie daty
-        log_filename = fullfile(log_dir, sprintf('log_%s.txt', datestr(now, 'yyyymmdd')));
+        log_filename = fullfile(log_dir, sprintf('log_%s.txt', datestr(now, 'yyyymmdd_HHMMSS')));
         
         % Otwórz plik do zapisu (append)
         LOG_FILE_HANDLE = fopen(log_filename, 'a');

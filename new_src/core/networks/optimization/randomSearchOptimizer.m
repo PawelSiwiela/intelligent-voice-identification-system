@@ -140,6 +140,12 @@ for trial = 1:config.max_trials
             'show_progress', false, ...
             'show_command_line', false);
         
+        % Sprawdź czy mamy dane testowe w konfiguracji
+        if isfield(config, 'X_test') && isfield(config, 'Y_test')
+            training_config.X_test = config.X_test;
+            training_config.Y_test = config.Y_test;
+        end
+        
         % Trenowanie sieci
         tic;
         [net, tr, training_results] = trainNetwork(net, X, Y, training_config);
