@@ -45,8 +45,8 @@ fprintf('%s\n', full_message);
 % Jeśli uchwyt do pliku nie istnieje, spróbuj go utworzyć
 if isempty(LOG_FILE_HANDLE) || LOG_FILE_HANDLE == -1
     try
-        % Utwórz folder logs w głównym katalogu projektu, jeśli nie istnieje
-        log_dir = fullfile(fileparts(mfilename('fullpath')), '..', '..', '..', 'logs');
+        % Utwórz folder output/logs w głównym katalogu projektu, jeśli nie istnieje
+        log_dir = fullfile('output', 'logs');
         if ~exist(log_dir, 'dir')
             mkdir(log_dir);
         end
