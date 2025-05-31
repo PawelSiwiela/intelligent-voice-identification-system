@@ -1,14 +1,15 @@
-function visualizeROC(y_pred, y_true, network_name, save_path)
+function visualizeROC(y_pred, y_true, network_name, save_path, labels)
 % VISUALIZEROC Wizualizacja krzywej ROC dla sieci neuronowej
 %
 % Składnia:
-%   visualizeROC(y_pred, y_true, network_name, save_path)
+%   visualizeROC(y_pred, y_true, network_name, save_path, labels)
 %
 % Argumenty:
 %   y_pred - macierz przewidywań sieci [klasy × próbki]
 %   y_true - macierz prawdziwych etykiet [klasy × próbki]
 %   network_name - opcjonalna nazwa sieci (domyślnie 'Sieć neuronowa')
 %   save_path - opcjonalna ścieżka do zapisu wykresu
+%   labels - opcjonalna tablica z nazwami klas (np. {'a/normalnie', 'a/szybko'})
 
 % Domyślna nazwa sieci
 if nargin < 3
@@ -20,44 +21,66 @@ if nargin < 4
     save_path = '';
 end
 
+% Domyślnie brak nazw klas
+if nargin < 5
+    % Domyślne etykiety klas
+    [num_classes, ~] = size(y_true);
+    labels = cell(1, num_classes);
+    for i = 1:num_classes
+        labels{i} = sprintf('Klasa %d', i);
+    end
+end
+
 try
     % Utworzenie figury z unikalnym uchwytem
-    h = figure('Name', sprintf('Krzywa ROC - %s', network_name), 'Position', [200, 200, 600, 500]);
+    h = figure('Name', sprintf('Krzywa ROC - %s', network_name), 'Position', [200, 200, 800, 600]);
     
     try
-        % Próba użycia plotroc z Neural Network Toolbox
+        % Próba użycia plotroc z Neural Network Toolbox z niestandardowymi etykietami
         plotroc(y_true, y_pred);
         title(sprintf('Krzywa ROC - %s', network_name));
+        
+        % Próba zmiany etykiet legendy jeśli jest dostępna
+        hLegend = findobj(h, 'Type', 'Legend');
+        if ~isempty(hLegend) && length(hLegend.String) == length(labels)
+            for i = 1:length(labels)
+                hLegend.String{i} = strrep(hLegend.String{i}, sprintf('Class %d', i), labels{i});
+            end
+        end
     catch
         % Alternatywna metoda dla braku plotroc
         [num_classes, num_samples] = size(y_true);
         
-        % Obsługa maksymalnie 5 klas na jednym wykresie
-        max_classes = min(5, num_classes);
+        % Obsługa maksymalnie 8 klas na jednym wykresie
+        max_classes = min(8, num_classes);
         
         hold on;
-        colors = {'b', 'r', 'g', 'm', 'c'};
+        colors = {'b', 'r', 'g', 'm', 'c', 'y', [0.8 0.4 0], [0.5 0 0.5]};  % Rozszerzona paleta kolorów
         legend_entries = cell(1, max_classes);
         
         for i = 1:max_classes
             % Obliczenie TPR i FPR dla różnych progów
             [tpr, fpr, ~] = roc_curve(y_true(i,:), y_pred(i,:));
             
-            % Obliczenie AUC
+            % Obliczenie AUC (Area Under Curve)
             auc_value = trapz(fpr, tpr);
             
             % Rysowanie krzywej ROC
             plot(fpr, tpr, [colors{mod(i-1, length(colors))+1}, '-'], 'LineWidth', 2);
-            legend_entries{i} = sprintf('Klasa %d (AUC = %.3f)', i, auc_value);
+            
+            % Używaj nazw klas z parametru labels
+            legend_entries{i} = sprintf('%s (AUC = %.3f)', labels{i}, auc_value);
         end
         
         % Linia odniesienia (random classifier)
         plot([0, 1], [0, 1], 'k--');
         
-        xlabel('False Positive Rate');
-        ylabel('True Positive Rate');
-        title(sprintf('Krzywe ROC - %s', network_name));
-        legend(legend_entries, 'Location', 'southeast');
+        xlabel('False Positive Rate (1 - Specyficzność)', 'FontSize', 11);
+        ylabel('True Positive Rate (Czułość)', 'FontSize', 11);
+        title(sprintf('Krzywe ROC - %s', network_name), 'FontSize', 14);
+        
+        % Tworzenie legendy z niestandardowymi nazwami
+        legend(legend_entries, 'Location', 'southeast', 'FontSize', 9);
         grid on;
         axis([0 1 0 1]);
         hold off;
@@ -69,16 +92,16 @@ try
         viz_dir = fileparts(save_path);
         if ~exist(viz_dir, 'dir')
             mkdir(viz_dir);
-            fprintf('📁 Utworzono katalog dla wizualizacji: %s\n', viz_dir);
+            logInfo('📁 Utworzono katalog dla wizualizacji: %s', viz_dir);
         end
         
         % Zapisanie figury
         saveas(h, save_path);
-        fprintf('💾 Zapisano wizualizację ROC do: %s\n', save_path);
+        logInfo('💾 Zapisano wizualizację ROC do: %s', save_path);
     end
     
 catch e
-    fprintf('❌ Błąd podczas generowania krzywej ROC: %s\n', e.message);
+    logWarning('❌ Błąd podczas generowania krzywej ROC: %s', e.message);
 end
 end
 
