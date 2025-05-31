@@ -53,10 +53,10 @@ for i = 1:length(config.hidden_layers)
     net.layers{i}.transferFcn = config.activation_function;
 end
 
-% Podział danych według specyfikacji 7:3
-net.divideParam.trainRatio = 0.7;    % 70% danych do treningu
-net.divideParam.valRatio = 0.0;      % nie używamy walidacji przy podziale 7:3
-net.divideParam.testRatio = 0.3;     % 30% danych do testu
+% Podział danych według specyfikacji 60:20:20
+net.divideParam.trainRatio = 0.6;    % 60% danych do treningu
+net.divideParam.valRatio = 0.2;      % 20% danych do walidacji
+net.divideParam.testRatio = 0.2;     % 20% danych do testu
 
 logInfo('🧠 Utworzono sieć %s z warstwami ukrytymi %s i algorytmem %s', ...
     config.type, mat2str(config.hidden_layers), config.training_algorithm);

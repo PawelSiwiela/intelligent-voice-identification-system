@@ -26,66 +26,63 @@ end
 
 try
     % Definiowanie głównych metryk do porównania
-    metric_names = {'Dokładność', 'Precyzja', 'Czułość', 'F1-Score', 'Czas predykcji (ms)'};
+    metric_names = {'Dokładność', 'Precyzja', 'Czułość', 'F1-Score'};
     
     % Przygotowanie danych do wyświetlenia
     values1 = [
         metrics1.accuracy,
         metrics1.macro_precision,
         metrics1.macro_recall,
-        metrics1.macro_f1,
-        metrics1.prediction_time * 1000  % Konwersja na milisekundy
+        metrics1.macro_f1
         ];
     
     values2 = [
         metrics2.accuracy,
         metrics2.macro_precision,
         metrics2.macro_recall,
-        metrics2.macro_f1,
-        metrics2.prediction_time * 1000  % Konwersja na milisekundy
+        metrics2.macro_f1
         ];
     
-    % Pierwszy wykres: porównanie dokładności, precyzji, czułości i F1
-    h = figure('Name', 'Porównanie metryk', 'Position', [100, 100, 1000, 500]);
+    % Utworzenie figury
+    h = figure('Name', 'Porównanie metryk', 'Position', [100, 100, 1000, 600]);
     
-    % Lewy wykres: Metryki klasyfikacji (jako procenty)
+    % Kolory dla słupków
+    color1 = [0.2, 0.6, 0.8];  % Niebieski dla pierwszej sieci
+    color2 = [0.8, 0.4, 0.2];  % Pomarańczowy dla drugiej sieci
+    
+    % SUBPLOT 1: Metryki dla pierwszej sieci
     subplot(1, 2, 1);
-    bar([values1(1:4); values2(1:4)]' * 100);  % Konwersja na procenty
-    
-    title('Porównanie metryk klasyfikacji');
-    xlabel('Metryka');
-    ylabel('Wartość (%)');
-    set(gca, 'XTickLabel', metric_names(1:4));
-    legend({network1_name, network2_name});
+    b1 = bar(values1' * 100, 'FaceColor', color1);
+    title(sprintf('Metryki dla %s', network1_name), 'FontSize', 13);
+    ylabel('Wartość (%)', 'FontSize', 12);
+    set(gca, 'XTickLabel', metric_names, 'FontSize', 11, 'XTickLabelRotation', 0);
     grid on;
+    ylim([0, 100]);  % Skala od 0 do 100%
     
-    % Dodanie etykiet wartości nad słupkami
-    for i = 1:4
-        x = i - 0.15;
-        y = values1(i) * 100 + 1;
-        text(x, y, sprintf('%.1f%%', values1(i)*100), 'HorizontalAlignment', 'center');
-        
-        x = i + 0.15;
-        y = values2(i) * 100 + 1;
-        text(x, y, sprintf('%.1f%%', values2(i)*100), 'HorizontalAlignment', 'center');
+    % Dodanie etykiet wartości nad słupkami dla pierwszej sieci
+    for i = 1:length(values1)
+        text(i, values1(i) * 100 + 2, sprintf('%.1f%%', values1(i) * 100), ...
+            'HorizontalAlignment', 'center', ...
+            'VerticalAlignment', 'bottom', ...
+            'FontWeight', 'bold');
     end
     
-    % Prawy wykres: Czas predykcji
+    % SUBPLOT 2: Metryki dla drugiej sieci
     subplot(1, 2, 2);
-    bar([values1(5), values2(5)]);
-    
-    title('Czas predykcji');
-    xlabel('Sieć');
-    ylabel('Czas (ms)');
-    set(gca, 'XTickLabel', {network1_name, network2_name});
+    b2 = bar(values2' * 100, 'FaceColor', color2);
+    title(sprintf('Metryki dla %s', network2_name), 'FontSize', 13);
+    ylabel('Wartość (%)', 'FontSize', 12);
+    set(gca, 'XTickLabel', metric_names, 'FontSize', 11, 'XTickLabelRotation', 0);
     grid on;
+    ylim([0, 100]);  % Skala od 0 do 100%
     
-    % Dodanie etykiet wartości nad słupkami
-    text(1, values1(5) + max([values1(5), values2(5)])*0.05, ...
-        sprintf('%.2f ms', values1(5)), 'HorizontalAlignment', 'center');
-    
-    text(2, values2(5) + max([values1(5), values2(5)])*0.05, ...
-        sprintf('%.2f ms', values2(5)), 'HorizontalAlignment', 'center');
+    % Dodanie etykiet wartości nad słupkami dla drugiej sieci
+    for i = 1:length(values2)
+        text(i, values2(i) * 100 + 2, sprintf('%.1f%%', values2(i) * 100), ...
+            'HorizontalAlignment', 'center', ...
+            'VerticalAlignment', 'bottom', ...
+            'FontWeight', 'bold');
+    end
     
     % Zapisanie wizualizacji jeśli podano ścieżkę
     if ~isempty(save_path)
@@ -93,16 +90,25 @@ try
         viz_dir = fileparts(save_path);
         if ~exist(viz_dir, 'dir')
             mkdir(viz_dir);
-            fprintf('📁 Utworzono katalog dla wizualizacji: %s\n', viz_dir);
+            logInfo('📁 Utworzono katalog dla wizualizacji: %s', viz_dir);
         end
         
         % Zapisanie figury
         saveas(h, save_path);
-        fprintf('💾 Zapisano wizualizację metryk do: %s\n', save_path);
+        logInfo('💾 Zapisano wizualizację metryk do: %s', save_path);
     end
     
 catch e
-    fprintf('❌ Błąd podczas generowania wizualizacji metryk: %s\n', e.message);
+    logWarning('❌ Błąd podczas generowania wizualizacji metryk: %s', e.message);
+    
+    % Awaryjne wyświetlanie danych tekstowo
+    fprintf('=== PORÓWNANIE METRYK ===\n');
+    fprintf('                 %s        %s\n', network1_name, network2_name);
+    fprintf('Dokładność:      %.2f%%      %.2f%%\n', metrics1.accuracy*100, metrics2.accuracy*100);
+    fprintf('Precyzja:        %.2f%%      %.2f%%\n', metrics1.macro_precision*100, metrics2.macro_precision*100);
+    fprintf('Czułość:         %.2f%%      %.2f%%\n', metrics1.macro_recall*100, metrics2.macro_recall*100);
+    fprintf('F1-Score:        %.2f%%      %.2f%%\n', metrics1.macro_f1*100, metrics2.macro_f1*100);
+    fprintf('Czas predykcji:  %.2fms      %.2fms\n', metrics1.prediction_time*1000, metrics2.prediction_time*1000);
 end
 
 end

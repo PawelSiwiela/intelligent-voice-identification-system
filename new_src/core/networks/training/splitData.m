@@ -1,84 +1,105 @@
-function [X_train, Y_train, X_test, Y_test] = splitData(X, Y, test_ratio, seed)
-% SPLITDATA Dzieli dane na zbiór treningowy i testowy z zachowaniem proporcji klas
+function [X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y, val_ratio, test_ratio)
+% SPLITDATA Dzieli dane na zbiory treningowy, walidacyjny i testowy z zachowaniem stratyfikacji
 %
 % Składnia:
-%   [X_train, Y_train, X_test, Y_test] = splitData(X, Y, test_ratio, seed)
+%   [X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y, val_ratio, test_ratio)
 %
 % Argumenty:
 %   X - macierz cech [próbki × cechy]
-%   Y - macierz etykiet [próbki × kategorie]
-%   test_ratio - proporcja danych testowych (domyślnie 0.3)
-%   seed - ziarno losowości (domyślnie 42)
+%   Y - macierz etykiet [próbki × klasy] (one-hot encoding)
+%   val_ratio - stosunek zbioru walidacyjnego (np. 0.2 = 20%)
+%   test_ratio - stosunek zbioru testowego (np. 0.2 = 20%)
 %
 % Zwraca:
-%   X_train - macierz cech treningowych
-%   Y_train - macierz etykiet treningowych
-%   X_test - macierz cech testowych
-%   Y_test - macierz etykiet testowych
+%   X_train, Y_train - dane treningowe
+%   X_val, Y_val - dane walidacyjne
+%   X_test, Y_test - dane testowe
 
-% Wartości domyślne
-if nargin < 3
-    test_ratio = 0.3;
-end
 if nargin < 4
-    seed = 42;
+    test_ratio = val_ratio;  % Domyślnie takie same proporcje dla walidacji i testu
 end
 
-% Ustawienie ziarna
-rng(seed);
+% Inicjalizacja pustych zbiorów wynikowych
+X_train = [];
+Y_train = [];
+X_val = [];
+Y_val = [];
+X_test = [];
+Y_test = [];
 
-num_samples = size(X, 1);
+% Znajdź indeksy próbek dla każdej klasy
+[~, max_indices] = max(Y, [], 2);
 num_classes = size(Y, 2);
 
-% Inicjalizacja indeksów dla zbiorów treningowego i testowego
-train_idx = [];
-test_idx = [];
+logInfo('🔢 Stratyfikowany podział danych dla %d klas...', num_classes);
 
-% Dla każdej klasy wykonaj stratyfikowany podział
-for class_i = 1:num_classes
-    % Znajdź próbki należące do tej klasy
-    class_samples = find(Y(:, class_i) == 1);
-    num_class_samples = length(class_samples);
+% Przejdź przez każdą klasę i podziel jej próbki
+for class = 1:num_classes
+    % Znajdź wszystkie próbki należące do danej klasy
+    class_indices = find(max_indices == class);
+    num_samples = length(class_indices);
     
-    if num_class_samples > 0
-        % Wymieszaj indeksy dla tej klasy
-        shuffled_indices = class_samples(randperm(num_class_samples));
-        
-        % Podziel próbki klasy na treningowe i testowe
-        num_test = max(1, round(num_class_samples * test_ratio));  % Minimum 1 próbka testowa
-        num_train = num_class_samples - num_test;
-        
-        if num_train > 0
-            test_class_idx = shuffled_indices(1:num_test);
-            train_class_idx = shuffled_indices(num_test+1:end);
-            
-            % Dołącz do zbiorów treningowych i testowych
-            train_idx = [train_idx; train_class_idx];
-            test_idx = [test_idx; test_class_idx];
-        else
-            % Jeśli klasa ma za mało próbek, dodaj co najmniej jedną do treningu
-            train_idx = [train_idx; shuffled_indices(1)];
-            if length(shuffled_indices) > 1
-                test_idx = [test_idx; shuffled_indices(2:end)];
-            end
-        end
+    % Jeśli nie ma próbek tej klasy, przejdź do następnej
+    if num_samples == 0
+        logWarning('⚠️ Brak próbek dla klasy %d', class);
+        continue;
     end
+    
+    % Ustalenie liczby próbek dla każdego zbioru
+    val_size = round(num_samples * val_ratio);
+    test_size = round(num_samples * test_ratio);
+    train_size = num_samples - val_size - test_size;
+    
+    % Upewnienie się, że mamy zawsze po 6/2/2 próbek
+    if num_samples == 10  % Dla 10 próbek na klasę
+        train_size = 6;
+        val_size = 2;
+        test_size = 2;
+    end
+    
+    % Jeśli mamy za mało próbek, ostrzeż użytkownika
+    if num_samples < 10
+        logWarning('⚠️ Klasa %d ma tylko %d próbek - nie można uzyskać podziału 6/2/2', class, num_samples);
+    end
+    
+    % Wymieszanie indeksów dla tej klasy
+    rng(42+class);  % Deterministyczne ziarno dla powtarzalności
+    shuffled_indices = class_indices(randperm(num_samples));
+    
+    % Przypisanie próbek do odpowiednich zbiorów
+    train_idx = shuffled_indices(1:train_size);
+    val_idx = shuffled_indices(train_size+1:train_size+val_size);
+    test_idx = shuffled_indices(train_size+val_size+1:end);
+    
+    % Dodanie próbek do odpowiednich zbiorów
+    X_train = [X_train; X(train_idx, :)];
+    Y_train = [Y_train; Y(train_idx, :)];
+    
+    X_val = [X_val; X(val_idx, :)];
+    Y_val = [Y_val; Y(val_idx, :)];
+    
+    X_test = [X_test; X(test_idx, :)];
+    Y_test = [Y_test; Y(test_idx, :)];
+    
+    logDebug('  Klasa %d: %d próbek treningowych, %d walidacyjnych, %d testowych', class, length(train_idx), length(val_idx), length(test_idx));
 end
 
-% Tworzenie zbiorów treningowych i testowych
-X_train = X(train_idx, :);
-Y_train = Y(train_idx, :);
-X_test = X(test_idx, :);
-Y_test = Y(test_idx, :);
+% Wymieszanie próbek w ramach każdego zbioru (zachowując pary X-Y)
+rng(42);  % Dla powtarzalności
+train_perm = randperm(size(X_train, 1));
+X_train = X_train(train_perm, :);
+Y_train = Y_train(train_perm, :);
 
-% Wyświetl informacje o podziale
-fprintf('Stratyfikowany podział danych: %d próbek treningowych, %d próbek testowych\n', ...
-    size(X_train, 1), size(X_test, 1));
+val_perm = randperm(size(X_val, 1));
+X_val = X_val(val_perm, :);
+Y_val = Y_val(val_perm, :);
 
-% Sprawdź reprezentację klas w obu zbiorach
-for i = 1:num_classes
-    train_count = sum(Y_train(:,i));
-    test_count = sum(Y_test(:,i));
-    fprintf('  Klasa %d: %d treningowych, %d testowych\n', i, train_count, test_count);
-end
+test_perm = randperm(size(X_test, 1));
+X_test = X_test(test_perm, :);
+Y_test = Y_test(test_perm, :);
+
+% Wyświetlenie informacji o podziale danych
+logInfo('📊 Podział danych: %d próbek treningowych, %d walidacyjnych, %d testowych', ...
+    size(X_train, 1), size(X_val, 1), size(X_test, 1));
+
 end

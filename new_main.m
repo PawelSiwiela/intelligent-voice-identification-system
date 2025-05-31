@@ -16,7 +16,7 @@ config = struct();
 
 % Parametry danych
 config.noise_level = 0.1;        % Poziom szumu
-config.num_samples = 5;          % Liczba próbek na kategorię
+config.num_samples = 10;          % Liczba próbek na kategorię
 config.normalize_features = true; % Czy normalizować cechy
 
 % Wybór trybu (scenariusza) - odkomentuj jeden z poniższych:

@@ -41,9 +41,6 @@ else
     logInfo('🔍 Optymalizacja ograniczona do typów sieci: %s', strjoin(net_types, ', '));
 end
 
-% Zakresy parametrów do przeszukiwania
-learning_rates = [0.001, 0.002, 0.003, 0.005, 0.008, 0.01, 0.015, 0.02, 0.05, 0.1];
-
 % Dostosowanie parametrów do scenariusza
 switch config.scenario
     case 'vowels'
@@ -65,10 +62,34 @@ switch config.scenario
     case 'all'
         % Scenariusz wszystkie dane - najbardziej złożony problem
         logInfo('🔧 Konfiguracja optymalizacji dla WSZYSTKICH DANYCH');
-        hidden_layers = {[12], [13], [14], [15], [16], [17], [18]};
-        training_algs = {'trainlm', 'trainbr', 'traingdx'}; % Wszystkie algorytmy
-        activation_functions = {'logsig'};
-        epochs_range = [100, 150, 200];
+        hidden_layers = {[12], [14], [16], [18], [20], [22], [12 6], [16 8], [18 9]};
+        training_algs = {'trainbr', 'trainlm', 'traincgf'};
+        activation_functions = {'logsig', 'tansig'};
+        epochs_range = [300, 500, 800, 1000];
+        learning_rates = [0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04];
+        
+        if ~isfield(config, 'net_params')
+            config.net_params = struct();
+        end
+        
+        % Parametry dla algorytmów uczenia
+        config.net_params = struct();
+        
+        % Parametry dla Bayesian Regularization
+        config.net_params.trainbr = struct();
+        config.net_params.trainbr.mu = 0.005;
+        config.net_params.trainbr.mu_dec = 0.1;
+        config.net_params.trainbr.mu_inc = 8;
+        config.net_params.trainbr.max_fail = 25;
+        config.net_params.trainbr.min_grad = 1e-10;
+        
+        % Parametry dla Levenberg-Marquardt
+        config.net_params.trainlm = struct();
+        config.net_params.trainlm.mu = 0.001;
+        config.net_params.trainlm.mu_dec = 0.1;
+        config.net_params.trainlm.mu_inc = 5;
+        config.net_params.trainlm.max_fail = 10;
+        onfig.net_params.trainlm.min_grad = 1e-7;
         
     otherwise
         % Domyślne parametry

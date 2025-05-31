@@ -28,7 +28,13 @@ logInfo('🧠 Rozpoczynam porównanie sieci patternnet i feedforwardnet...');
 logInfo('🔍 Optymalizacja parametrów dla sieci PATTERNNET');
 
 % Jednokrotny podział danych dla wszystkich sieci
-[X_train, Y_train, X_test, Y_test] = splitData(X, Y, 0.3);
+[X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y, 0.2, 0.2);
+
+logInfo('🔢 Stratyfikowany podział danych 60%%/20%%/20%% (6/2/2 próbek na kategorię)');
+
+% Dodatkowo możesz połączyć dane treningowe i walidacyjne dla optymalizacji hiperparametrów
+X_train_opt = [X_train; X_val];
+Y_train_opt = [Y_train; Y_val];
 
 % Konfiguracja dla optymalizatora patternnet
 patternnet_config = config;
@@ -37,7 +43,7 @@ patternnet_config.X_test = X_test;  % Dodaj dane testowe do konfiguracji
 patternnet_config.Y_test = Y_test;
 
 % Uruchomienie optymalizatora patternnet
-[pattern_net, pattern_tr, pattern_results] = randomSearchOptimizer(X_train, Y_train, labels, patternnet_config);
+[pattern_net, pattern_tr, pattern_results] = randomSearchOptimizer(X_train_opt, Y_train_opt, labels, patternnet_config);
 
 logSuccess('✅ Najlepsza dokładność dla patternnet: %.2f%%', pattern_results.best_accuracy * 100);
 
@@ -53,7 +59,7 @@ feedforward_config.X_test = X_test;
 feedforward_config.Y_test = Y_test;
 
 % Uruchomienie optymalizatora feedforwardnet
-[feedforward_net, feedforward_tr, feedforward_results] = randomSearchOptimizer(X_train, Y_train, labels, feedforward_config);
+[feedforward_net, feedforward_tr, feedforward_results] = randomSearchOptimizer(X_train_opt, Y_train_opt, labels, feedforward_config);
 
 logSuccess('✅ Najlepsza dokładność dla feedforwardnet: %.2f%%', feedforward_results.best_accuracy * 100);
 
@@ -182,11 +188,24 @@ if isfield(config, 'show_visualizations') && config.show_visualizations
         visualizeTrainingProgress(pattern_tr, 'Patternnet', viz_file4);
         visualizeTrainingProgress(feedforward_tr, 'Feedforwardnet', viz_file5);
         
+        % Wizualizacja krzywych ROC
+        viz_file6 = fullfile(viz_dir, 'roc_patternnet.png');
+        viz_file7 = fullfile(viz_dir, 'roc_feedforwardnet.png');
+        
+        % Predykcje dla krzywej ROC
+        y_pred_pattern = pattern_net(X_test');
+        y_pred_feedforward = feedforward_net(X_test');
+        y_true = Y_test';
+        
+        visualizeROC(y_pred_pattern, y_true, 'Patternnet', viz_file6);
+        visualizeROC(y_pred_feedforward, y_true, 'Feedforwardnet', viz_file7);
+        
         % Wizualizacja struktury sieci
-        viz_file6 = fullfile(viz_dir, 'structure_patternnet.png');
-        viz_file7 = fullfile(viz_dir, 'structure_feedforwardnet.png');
-        visualizeNetworkStructure(pattern_net, 'Struktura sieci Patternnet', viz_file6);
-        visualizeNetworkStructure(feedforward_net, 'Struktura sieci Feedforwardnet', viz_file7);
+        viz_file8 = fullfile(viz_dir, 'structure_patternnet.png');
+        viz_file9 = fullfile(viz_dir, 'structure_feedforwardnet.png');
+        
+        visualizeNetworkStructure(pattern_net, sprintf('Struktura sieci %s', 'Patternnet'), viz_file8);
+        visualizeNetworkStructure(feedforward_net, sprintf('Struktura sieci %s', 'Feedforwardnet'), viz_file9);
         
         logSuccess('✅ Wizualizacje wygenerowane i zapisane do: %s', viz_dir);
     catch e

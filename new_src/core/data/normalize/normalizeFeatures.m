@@ -28,20 +28,22 @@ for col = 1:size(data_matrix, 2)
     % Pobranie wartości dla aktualnej cechy
     feature_values = data_matrix(:, col);
     
-    % Znajdź maksymalną wartość bezwzględną w kolumnie (czynnik skalujący)
-    max_abs_value = max(abs(feature_values));
+    % Oblicz średnią i odchylenie standardowe cechy
+    feat_mean = mean(feature_values);
+    feat_std = std(feature_values);
     
     % Zabezpieczenie przed dzieleniem przez zero
-    if max_abs_value == 0 || isnan(max_abs_value)
-        max_abs_value = eps;  % Najmniejsza dodatnia liczba w MATLAB
-        logWarning('⚠️ Cecha %d zawiera tylko zera lub wartości NaN - używam eps jako dzielnik', col);
+    if feat_std == 0 || isnan(feat_std)
+        feat_std = eps;  % Najmniejsza dodatnia liczba w MATLAB
+        logWarning('⚠️ Cecha %d ma zerowe odchylenie standardowe - używam eps jako dzielnik', col);
     end
     
-    % Zapisz czynnik skalujący do późniejszego użycia
-    scaling_factors(col) = max_abs_value;
+    % Zapisz parametry normalizacji do późniejszego użycia
+    means(col) = feat_mean;
+    stds(col) = feat_std;
     
-    % Normalizacja cechy przez maksymalną wartość bezwzględną
-    normalized_data(:, col) = feature_values / max_abs_value;
+    % Normalizacja Z-score: (x - mean) / std
+    normalized_data(:, col) = (feature_values - feat_mean) / feat_std;
 end
 
 % Obsługa wartości nieskończonych i NaN

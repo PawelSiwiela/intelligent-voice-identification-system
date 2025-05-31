@@ -47,10 +47,41 @@ prediction_time = toc;
 
 % Podstawowe metryki
 accuracy = sum(pred_idx == true_idx) / length(true_idx);
-confusion_matrix = confusionmat(true_idx, pred_idx);
+
+% Bezpieczne utworzenie macierzy konfuzji
+num_classes = size(Y, 2);
+try
+    % Upewnij się, że wszystkie indeksy są w prawidłowym zakresie
+    if max(pred_idx) > num_classes || max(true_idx) > num_classes
+        logWarning('⚠️ Wykryto indeksy klas poza zakresem - przycinanie do dozwolonego zakresu');
+        pred_idx = min(pred_idx, num_classes);
+        true_idx = min(true_idx, num_classes);
+    end
+    
+    % Utworzenie macierzy konfuzji
+    confusion_matrix = confusionmat(true_idx, pred_idx);
+    
+    % Sprawdź czy macierz konfuzji ma oczekiwany rozmiar
+    if size(confusion_matrix, 1) < num_classes
+        logInfo('Rozszerzanie macierzy konfuzji do pełnego rozmiaru %dx%d', num_classes, num_classes);
+        temp = zeros(num_classes, num_classes);
+        temp(1:size(confusion_matrix,1), 1:size(confusion_matrix,2)) = confusion_matrix;
+        confusion_matrix = temp;
+    end
+catch e
+    logWarning('⚠️ Problem z utworzeniem macierzy konfuzji: %s', e.message);
+    % Utworzenie pustej macierzy konfuzji
+    confusion_matrix = zeros(num_classes, num_classes);
+    
+    % Ręczne wypełnienie macierzy konfuzji
+    for i = 1:length(true_idx)
+        if true_idx(i) <= num_classes && pred_idx(i) <= num_classes
+            confusion_matrix(true_idx(i), pred_idx(i)) = confusion_matrix(true_idx(i), pred_idx(i)) + 1;
+        end
+    end
+end
 
 % Obliczenie metryk dla każdej klasy
-num_classes = size(Y, 2);
 precision = zeros(num_classes, 1);
 recall = zeros(num_classes, 1);
 f1_score = zeros(num_classes, 1);
