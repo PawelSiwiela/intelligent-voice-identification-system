@@ -25,7 +25,7 @@ config.scenario = 'all';         % wszystkie dane (samogłoski + komendy)
 %config.scenario = 'commands';    % tylko komendy
 
 % Parametry optymalizacji
-config.max_trials = 20;          % Liczba prób w random search
+config.max_trials = 40;          % Liczba prób w random search
 config.golden_accuracy = 0.95;   % Próg "złotej dokładności"
 config.early_stopping = true;    % Czy przerwać po znalezieniu dobrego wyniku
 config.show_visualizations = true; % Czy pokazywać wizualizacje

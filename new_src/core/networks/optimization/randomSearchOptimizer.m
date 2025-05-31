@@ -62,11 +62,11 @@ switch config.scenario
     case 'all'
         % Scenariusz wszystkie dane - najbardziej złożony problem
         logInfo('🔧 Konfiguracja optymalizacji dla WSZYSTKICH DANYCH');
-        hidden_layers = {[12], [14], [16], [18], [20], [22], [12 6], [16 8], [18 9]};
-        training_algs = {'trainbr', 'trainlm', 'traincgf'};
+        hidden_layers = {[8], [10], [12], [8 4], [10 5], [12 6]};
+        training_algs = {'trainbr', 'trainlm'};
         activation_functions = {'logsig', 'tansig'};
-        epochs_range = [300, 500, 800, 1000];
-        learning_rates = [0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04];
+        epochs_range = [200, 300, 500];
+        learning_rates = [0.005, 0.01, 0.015, 0.02, 0.025, 0.03];
         
         if ~isfield(config, 'net_params')
             config.net_params = struct();
@@ -79,17 +79,17 @@ switch config.scenario
         config.net_params.trainbr = struct();
         config.net_params.trainbr.mu = 0.005;
         config.net_params.trainbr.mu_dec = 0.1;
-        config.net_params.trainbr.mu_inc = 8;
-        config.net_params.trainbr.max_fail = 25;
+        config.net_params.trainbr.mu_inc = 10;
+        config.net_params.trainbr.max_fail = 30;
         config.net_params.trainbr.min_grad = 1e-10;
         
         % Parametry dla Levenberg-Marquardt
         config.net_params.trainlm = struct();
         config.net_params.trainlm.mu = 0.001;
         config.net_params.trainlm.mu_dec = 0.1;
-        config.net_params.trainlm.mu_inc = 5;
-        config.net_params.trainlm.max_fail = 10;
-        onfig.net_params.trainlm.min_grad = 1e-7;
+        config.net_params.trainlm.mu_inc = 10;
+        config.net_params.trainlm.max_fail = 15;
+        config.net_params.trainlm.min_grad = 1e-7;
         
     otherwise
         % Domyślne parametry
