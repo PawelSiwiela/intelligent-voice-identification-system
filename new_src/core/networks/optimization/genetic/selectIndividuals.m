@@ -18,8 +18,16 @@ else
     tournament_size = config.tournament_size;
 end
 
+% Zabezpieczenie przed błędnymi wartościami parametrów
+population_size = length(fitness);
+if population_size < 1
+    disp('BŁĄD: Pusta tablica fitness w selectIndividuals');
+    selected_indices = ones(1, config.population_size);  % Awaryjne indeksy
+    return;
+end
+
 % Liczba osobników do wybrania
-num_to_select = config.population_size;
+num_to_select = min(config.population_size, 2);  % Co najmniej 2 osobniki
 
 % Zabezpieczenie przed ujemnymi wartościami fitness
 fitness = max(fitness, 0.001);

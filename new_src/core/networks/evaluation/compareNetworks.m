@@ -23,18 +23,21 @@ comparison_results = struct(...
 logInfo('🧠 Rozpoczynam porównanie sieci patternnet i feedforwardnet...');
 
 % =========================================================================
-% ETAP 1: OPTYMALIZACJA PARAMETRÓW SIECI PATTERNNET
+% ETAP 1: PRZYGOTOWANIE DANYCH
 % =========================================================================
-logInfo('🔍 Optymalizacja parametrów dla sieci PATTERNNET');
 
 % Jednokrotny podział danych dla wszystkich sieci
 [X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y, 0.2, 0.2);
-
 logInfo('🔢 Stratyfikowany podział danych 60%%/20%%/20%% (6/2/2 próbek na kategorię)');
 
 % Dodatkowo możesz połączyć dane treningowe i walidacyjne dla optymalizacji hiperparametrów
 X_train_opt = [X_train; X_val];
 Y_train_opt = [Y_train; Y_val];
+
+% =========================================================================
+% ETAP 2: OPTYMALIZACJA PARAMETRÓW SIECI PATTERNNET
+% =========================================================================
+logInfo('🔍 Optymalizacja parametrów dla sieci PATTERNNET');
 
 % Konfiguracja dla optymalizatora patternnet
 patternnet_config = config;
@@ -56,7 +59,7 @@ end
 logSuccess('✅ Najlepsza dokładność dla patternnet: %.2f%%', pattern_results.best_accuracy * 100);
 
 % =========================================================================
-% ETAP 2: OPTYMALIZACJA PARAMETRÓW SIECI FEEDFORWARDNET
+% ETAP 3: OPTYMALIZACJA PARAMETRÓW SIECI FEEDFORWARDNET
 % =========================================================================
 logInfo('🔍 Optymalizacja parametrów dla sieci FEEDFORWARDNET');
 
@@ -80,7 +83,7 @@ end
 logSuccess('✅ Najlepsza dokładność dla feedforwardnet: %.2f%%', feedforward_results.best_accuracy * 100);
 
 % =========================================================================
-% ETAP 3: SZCZEGÓŁOWA EWALUACJA OBU SIECI
+% ETAP 4: SZCZEGÓŁOWA EWALUACJA OBU SIECI
 % =========================================================================
 logInfo('📊 Szczegółowa ewaluacja obu sieci...');
 
@@ -102,7 +105,7 @@ comparison_results.patternnet.evaluation = pattern_evaluation;
 comparison_results.feedforwardnet.evaluation = feedforward_evaluation;
 
 % =========================================================================
-% ETAP 4: ANALIZA PORÓWNAWCZA
+% ETAP 5: ANALIZA PORÓWNAWCZA
 % =========================================================================
 logInfo('📊 Analiza porównawcza wyników...');
 
@@ -185,7 +188,7 @@ logSuccess('✅ Analiza zakończona. Zwycięzca: %s (przewaga: %.2f%%)', ...
     comparison_results.comparison.accuracy_gain * 100);
 
 % =========================================================================
-% ETAP 5: WIZUALIZACJA WYNIKÓW (OPCJONALNIE)
+% ETAP 6: WIZUALIZACJA WYNIKÓW (OPCJONALNIE)
 % =========================================================================
 if isfield(config, 'show_visualizations') && config.show_visualizations
     logInfo('📈 Generowanie wizualizacji porównawczych...');

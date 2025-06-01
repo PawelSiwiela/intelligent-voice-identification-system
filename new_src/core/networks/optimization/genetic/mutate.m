@@ -1,5 +1,5 @@
 function mutated = mutate(individual, param_ranges, mutation_rate)
-% MUTATE Operator mutacji osobnika
+% MUTATE Operator mutacji osobnika - zoptymalizowany dla eksploatacji
 %
 % Składnia:
 %   mutated = mutate(individual, param_ranges, mutation_rate)
@@ -7,13 +7,13 @@ function mutated = mutate(individual, param_ranges, mutation_rate)
 % Argumenty:
 %   individual - genotyp osobnika do mutacji
 %   param_ranges - struktura z definicjami zakresów parametrów
-%   mutation_rate - prawdopodobieństwo mutacji każdego genu
-%
-% Zwraca:
-%   mutated - genotyp po mutacji
+%   mutation_rate - bazowe prawdopodobieństwo mutacji każdego genu
 
 % Inicjalizacja wyniku
 mutated = individual;
+
+% Określenie niskiego współczynnika mutacji dla eksploatacji
+actual_mutation_rate = mutation_rate; % Już powinien być niski (~0.15)
 
 % Liczba genów
 num_genes = length(individual);
@@ -50,9 +50,42 @@ end
 
 % Mutacja każdego genu z określonym prawdopodobieństwem
 for i = 1:min(num_genes, length(max_values))
-    if rand() < mutation_rate
-        % Losowa nowa wartość w odpowiednim zakresie
-        mutated(i) = randi(max_values(i));
+    % Zmniejszamy prawdopodobieństwo mutacji dla ważnych genów (2, 3, 5)
+    % aby zachować dobre wartości dla warstw, algorytmu uczenia i learning rate
+    gene_mutation_rate = actual_mutation_rate;
+    if i == 2 || i == 3 || i == 5
+        gene_mutation_rate = gene_mutation_rate * 0.8; % Zmniejszamy o 20%
+    end
+    
+    if rand() < gene_mutation_rate
+        % Dla 2-go genu (warstwy sieci) preferujemy jednowarstwowe sieci [19-24]
+        if i == 2
+            single_layer_indices = find(cellfun(@(x) length(x) == 1 && x(1) >= 19 && x(1) <= 24, param_ranges.hidden_layers));
+            if ~isempty(single_layer_indices) && rand() < 0.7 % 70% szans na wybór optymalnej architektury
+                mutated(i) = single_layer_indices(randi(length(single_layer_indices)));
+            else
+                mutated(i) = randi(max_values(i));
+            end
+            % Dla 3-go genu (algorytm uczenia) preferujemy trainlm
+        elseif i == 3
+            trainlm_idx = find(strcmp(param_ranges.training_algs, 'trainlm'));
+            if ~isempty(trainlm_idx) && rand() < 0.8 % 80% szans na wybór trainlm
+                mutated(i) = trainlm_idx;
+            else
+                mutated(i) = randi(max_values(i));
+            end
+            % Dla 5-go genu (learning rate) preferujemy zakres 0.01-0.02
+        elseif i == 5
+            optimal_lr_indices = find(param_ranges.learning_rates >= 0.01 & param_ranges.learning_rates <= 0.02);
+            if ~isempty(optimal_lr_indices) && rand() < 0.7 % 70% szans na wybór optymalnego LR
+                mutated(i) = optimal_lr_indices(randi(length(optimal_lr_indices)));
+            else
+                mutated(i) = randi(max_values(i));
+            end
+        else
+            % Standardowa mutacja dla pozostałych genów
+            mutated(i) = randi(max_values(i));
+        end
     end
 end
 
