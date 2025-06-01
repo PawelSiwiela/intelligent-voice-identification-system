@@ -1,49 +1,47 @@
-function [X, Y, successful_loads, failed_loads] = loadCommands(X, Y, all_commands, num_commands, num_samples, complex_path, total_categories, num_vowels, use_vowels, successful_loads, failed_loads, noise_level)
-% LOADCOMMANDS Wczytywanie i przetwarzanie komend złożonych
+function [X, Y, successful_loads, failed_loads] = loadCommands(X, Y, all_commands, num_commands, ...
+    num_samples, complex_path, total_categories, num_vowels, use_vowels, successful_loads, failed_loads, noise_level, feature_dim)
+% LOADCOMMANDS Wczytuje próbki komend złożonych
+%
+% Składnia:
+%   [X, Y, successful_loads, failed_loads] = loadCommands(X, Y, all_commands, num_commands, ...
+%       num_samples, complex_path, total_categories, num_vowels, use_vowels, successful_loads, failed_loads, noise_level, feature_dim)
 %
 % Argumenty:
-%   X, Y - macierze cech i etykiet (mogą być puste)
-%   all_commands - lista komend złożonych
+%   X, Y - macierze cech i etykiet
+%   all_commands - lista komend do wczytania
 %   num_commands - liczba komend
-%   num_samples - maksymalna liczba próbek na kategorię
+%   num_samples - ile próbek wczytać na komendę
 %   complex_path - ścieżka do folderu z komendami
 %   total_categories - całkowita liczba kategorii
-%   num_vowels - liczba samogłosek (dla offsetu etykiet)
-%   use_vowels - flaga czy używane są samogłoski
-%   successful_loads, failed_loads - liczniki sukcesu/porażki
+%   num_vowels - liczba samogłosek (do przesunięcia indeksu etykiet)
+%   use_vowels - czy używać samogłosek (do określenia indeksu etykiet)
+%   successful_loads, failed_loads - liczniki udanych/nieudanych wczytań
 %   noise_level - poziom szumu
+%   feature_dim - stały wymiar wektora cech
 %
 % Zwraca:
 %   X, Y - zaktualizowane macierze cech i etykiet
 %   successful_loads, failed_loads - zaktualizowane liczniki
 
-% Sprawdzenie istnienia folderu z komendami złożonymi
+% Sprawdzenie istnienia folderu z komendami
 if ~exist(complex_path, 'dir')
-    logError('❌ Folder z komendami złożonymi nie został znaleziony! Ścieżka: %s', complex_path);
-    error('Folder z komendami złożonymi nie został znaleziony! Ścieżka: %s', complex_path);
+    logError('❌ Folder z komendami nie został znaleziony! Ścieżka: %s', complex_path);
+    error('Folder z komendami nie został znaleziony! Ścieżka: %s', complex_path);
 end
 
 logInfo('🔄 Rozpoczynam wczytywanie komend złożonych...');
 
 % Przetwarzanie każdej komendy
 for c = 1:num_commands
-    % Parsowanie struktury komendy (kategoria/komenda/prędkość)
+    % Parsowanie nazwy i prędkości
     command_parts = strsplit(all_commands{c}, '/');
+    category = command_parts{1};    % np. 'Drzwi'
+    command = command_parts{2};     % np. 'Otwórz drzwi'
+    speed = command_parts{3};       % np. 'normalnie'
     
-    % Sprawdzenie czy mamy wystarczającą liczbę części
-    if length(command_parts) < 3
-        logWarning('⚠️ Nieprawidłowy format komendy: %s. Pomijam.', all_commands{c});
-        continue;
-    end
-    
-    category = command_parts{1};     % np. 'Światło'
-    command = command_parts{2};      % np. 'Włącz światło'
-    speed = command_parts{3};        % np. 'normalnie'
-    
-    % Tworzenie ścieżki do folderu z próbkami
+    % Ścieżka do folderu z daną komendą
     command_path = fullfile(complex_path, category, command, speed);
     
-    % Sprawdzenie istnienia folderu
     if ~exist(command_path, 'dir')
         logWarning('⚠️ Folder "%s" nie istnieje. Pomijam komendę %s.', command_path, all_commands{c});
         continue;
@@ -81,25 +79,17 @@ for c = 1:num_commands
             % Używamy naszej funkcji preprocessAudio
             [features, ~] = preprocessAudio(file_path, noise_level);
             
-            % Sprawdzenie zgodności wymiarów cech
-            if isempty(X)
-                X = features;
-            else
-                % Sprawdzenie i dopasowanie wymiarów
-                if length(features) ~= size(X, 2)
-                    if length(features) > size(X, 2)
-                        % Nowy wektor ma więcej cech - rozszerz X
-                        X = [X, zeros(size(X, 1), length(features) - size(X, 2))];
-                    else
-                        % Nowy wektor ma mniej cech - rozszerz features
-                        features = [features, zeros(1, size(X, 2) - length(features))];
-                    end
-                    
-                    logWarning('⚠️ Dopasowano wymiary cech dla pliku %s', file_path);
-                end
-                
-                X = [X; features];
+            % POPRAWKA: Zapewnienie stałego wymiaru cech
+            if length(features) < feature_dim
+                % Jeśli wektor cech jest za krótki - dopełnij zerami
+                features = [features, zeros(1, feature_dim - length(features))];
+            elseif length(features) > feature_dim
+                % Jeśli wektor cech jest za długi - przytnij
+                features = features(1:feature_dim);
             end
+            
+            % Dodaj do macierzy cech
+            X = [X; features];
             
             % Obliczenie indeksu etykiety dla komendy
             if use_vowels
@@ -122,5 +112,5 @@ for c = 1:num_commands
     end
 end
 
-logInfo('✅ Zakończono wczytywanie komend złożonych: %d udanych, %d nieudanych', successful_loads, failed_loads);
+logInfo('✅ Zakończono wczytywanie komend: %d udanych, %d nieudanych', successful_loads, failed_loads);
 end

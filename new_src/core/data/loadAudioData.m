@@ -100,9 +100,13 @@ else
     logInfo('🏷️ Używanie %d kategorii komend złożonych', total_categories);
 end
 
-% Inicjalizacja macierzy wynikowych
-X = [];  % Macierz cech
-Y = [];  % Macierz etykiet (one-hot encoding)
+% Ustalona wielkość cech dla wszystkich scenariuszy
+feature_dim = 40;
+
+% WAŻNA ZMIANA: Inicjalizacja macierzy wynikowych - używamy ustalonego wymiaru
+% dla wszystkich scenariuszy, niezależnie czy samogłoski czy komendy
+X = zeros(0, feature_dim);  % Macierz cech - początkowy rozmiar 0×40
+Y = zeros(0, total_categories);  % Macierz etykiet - początkowy rozmiar 0×total_categories
 
 % Określenie ścieżek do folderów z danymi
 simple_path = fullfile('data', 'simple');   % Ścieżka do samogłosek
@@ -123,13 +127,13 @@ logInfo('📊 Konfiguracja: szum=%.2f, próbek=%d, samogłoski=%s, złożone=%s'
 % Wczytywanie samogłosek
 if use_vowels
     [X, Y, successful_loads, failed_loads] = loadVowels(X, Y, vowels, num_vowels, ...
-        num_samples, simple_path, total_categories, successful_loads, failed_loads, noise_level);
+        num_samples, simple_path, total_categories, successful_loads, failed_loads, noise_level, feature_dim);
 end
 
 % Wczytywanie komend złożonych
 if use_complex
     [X, Y, successful_loads, failed_loads] = loadCommands(X, Y, all_commands, num_commands, ...
-        num_samples, complex_path, total_categories, num_vowels, use_vowels, successful_loads, failed_loads, noise_level);
+        num_samples, complex_path, total_categories, num_vowels, use_vowels, successful_loads, failed_loads, noise_level, feature_dim);
 end
 
 % =========================================================================
@@ -143,6 +147,19 @@ end
 
 % Podsumowanie statystyk
 logInfo('📊 Udane wczytania: %d, Nieudane wczytania: %d', successful_loads, failed_loads);
+
+% Sprawdzenie czy macierz X nie jest pusta
+if isempty(X)
+    logError('❌ Nie udało się wczytać żadnych danych!');
+    error('Nie udało się wczytać żadnych danych!');
+end
+
+% Sprawdzenie zgodności wymiarów
+if size(X, 1) ~= size(Y, 1)
+    logError('❌ Niezgodność wymiarów między macierzami X i Y! X: %dx%d, Y: %dx%d', ...
+        size(X,1), size(X,2), size(Y,1), size(Y,2));
+    error('Niezgodność wymiarów między macierzami X i Y!');
+end
 
 % Normalizacja cech (jeśli wymagana)
 if normalize_features_flag && ~isempty(X)

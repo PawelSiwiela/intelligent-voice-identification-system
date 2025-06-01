@@ -1,15 +1,21 @@
-function [X, Y, successful_loads, failed_loads] = loadVowels(X, Y, vowels, num_vowels, num_samples, simple_path, total_categories, successful_loads, failed_loads, noise_level)
-% LOADVOWELS Wczytywanie i przetwarzanie samogłosek
+function [X, Y, successful_loads, failed_loads] = loadVowels(X, Y, vowels, num_vowels, ...
+    num_samples, simple_path, total_categories, successful_loads, failed_loads, noise_level, feature_dim)
+% LOADVOWELS Wczytuje próbki samogłosek
+%
+% Składnia:
+%   [X, Y, successful_loads, failed_loads] = loadVowels(X, Y, vowels, num_vowels, ...
+%       num_samples, simple_path, total_categories, successful_loads, failed_loads, noise_level, feature_dim)
 %
 % Argumenty:
-%   X, Y - macierze cech i etykiet (mogą być puste)
-%   vowels - lista samogłosek
+%   X, Y - macierze cech i etykiet
+%   vowels - lista samogłosek do wczytania
 %   num_vowels - liczba samogłosek
-%   num_samples - maksymalna liczba próbek na kategorię
+%   num_samples - ile próbek wczytać na samogłoskę
 %   simple_path - ścieżka do folderu z samogłoskami
 %   total_categories - całkowita liczba kategorii
-%   successful_loads, failed_loads - liczniki sukcesu/porażki
+%   successful_loads, failed_loads - liczniki udanych/nieudanych wczytań
 %   noise_level - poziom szumu
+%   feature_dim - stały wymiar wektora cech
 %
 % Zwraca:
 %   X, Y - zaktualizowane macierze cech i etykiet
@@ -30,17 +36,18 @@ for v = 1:num_vowels
     vowel_base = vowel_parts{1};    % np. 'a'
     vowel_speed = vowel_parts{2};   % np. 'normalnie'
     
-    % Tworzenie ścieżki do folderu z próbkami
+    % Ścieżka do folderu z daną samogłoską
     vowel_path = fullfile(simple_path, vowel_base, vowel_speed);
     
-    % Sprawdzenie istnienia folderu
     if ~exist(vowel_path, 'dir')
         logWarning('⚠️ Folder "%s" nie istnieje. Pomijam samogłoskę %s.', vowel_path, vowels{v});
         continue;
     end
     
-    % Sortowanie plików numerycznie
+    % Pobieranie wszystkich plików .wav
     wav_files = dir(fullfile(vowel_path, '*.wav'));
+    
+    % Sortowanie plików według numeru
     file_names = {wav_files.name};
     file_nums = zeros(size(file_names));
     
@@ -71,25 +78,17 @@ for v = 1:num_vowels
             % Używamy funkcji preprocessAudio
             [features, ~] = preprocessAudio(file_path, noise_level);
             
-            % Sprawdzenie zgodności wymiarów cech
-            if isempty(X)
-                X = features;
-            else
-                % Sprawdzenie i dopasowanie wymiarów
-                if length(features) ~= size(X, 2)
-                    if length(features) > size(X, 2)
-                        % Nowy wektor ma więcej cech - rozszerz X
-                        X = [X, zeros(size(X, 1), length(features) - size(X, 2))];
-                    else
-                        % Nowy wektor ma mniej cech - rozszerz features
-                        features = [features, zeros(1, size(X, 2) - length(features))];
-                    end
-                    
-                    logWarning('⚠️ Dopasowano wymiary cech dla pliku %s', file_path);
-                end
-                
-                X = [X; features];
+            % Zapewnienie stałego wymiaru cech
+            if length(features) < feature_dim
+                % Jeśli wektor cech jest za krótki - dopełnij zerami
+                features = [features, zeros(1, feature_dim - length(features))];
+            elseif length(features) > feature_dim
+                % Jeśli wektor cech jest za długi - przytnij
+                features = features(1:feature_dim);
             end
+            
+            % Dodaj do macierzy cech
+            X = [X; features];
             
             % Tworzenie etykiety one-hot dla samogłoski
             label = zeros(1, total_categories);
