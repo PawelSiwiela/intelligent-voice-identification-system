@@ -37,10 +37,6 @@ if ~isfield(config, 'elite_count')
     config.elite_count = 2;       % Liczba najlepszych osobników przechodzących bez zmian
 end
 
-if ~isfield(config, 'selection_method')
-    config.selection_method = 'tournament';  % Metoda selekcji ('roulette', 'tournament')
-end
-
 if ~isfield(config, 'tournament_size')
     config.tournament_size = 3;   % Rozmiar turnieju (dla selekcji turniejowej)
 end
