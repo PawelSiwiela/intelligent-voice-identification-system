@@ -25,10 +25,15 @@ config.scenario = 'all';         % wszystkie dane (samogłoski + komendy)
 %config.scenario = 'commands';    % tylko komendy
 
 % Parametry optymalizacji
-config.max_trials = 40;          % Liczba prób w random search
+config.optimization_method = 'genetic';  % 'random' lub 'genetic'
+config.max_trials = 40;          % Liczba prób dla Random Search
 config.golden_accuracy = 0.95;   % Próg "złotej dokładności"
 config.early_stopping = true;    % Czy przerwać po znalezieniu dobrego wyniku
 config.show_visualizations = true; % Czy pokazywać wizualizacje
+
+% Parametry dla algorytmu genetycznego (używane tylko gdy optimization_method = 'genetic')
+config.population_size = 10;     % Rozmiar populacji
+config.num_generations = 4;      % Liczba generacji
 
 % ==== URUCHOMIENIE SYSTEMU ====
 try
@@ -44,6 +49,7 @@ try
     fprintf('Czas wykonania: %.2f sekund\n', elapsed_time);
     fprintf('Najlepszy typ sieci: %s\n', results.best_network_type);
     fprintf('Najlepsza dokładność: %.2f%%\n', results.best_accuracy * 100);
+    fprintf('Metoda optymalizacji: %s\n', config.optimization_method);
     
 catch e
     % Obsługa błędów

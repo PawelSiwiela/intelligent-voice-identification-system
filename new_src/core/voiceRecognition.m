@@ -16,6 +16,14 @@ function [best_net, best_tr, results] = voiceRecognition(config)
 %     .golden_accuracy - próg dokładności dla "złotych parametrów" (domyślnie 0.95)
 %     .show_visualizations - czy pokazywać wizualizacje (domyślnie true)
 %     .early_stopping - czy zatrzymać wcześniej po znalezieniu dobrych parametrów (domyślnie true)
+%     .optimization_method - metoda optymalizacji ('random' lub 'genetic', domyślnie 'random')
+%     .population_size - rozmiar populacji dla algorytmu genetycznego (domyślnie 10)
+%     .num_generations - liczba generacji dla algorytmu genetycznego (domyślnie 4)
+%     .mutation_rate - współczynnik mutacji (domyślnie 0.2)
+%     .crossover_rate - współczynnik krzyżowania (domyślnie 0.8)
+%     .elite_count - liczba osobników elitarnych (domyślnie 2)
+%     .selection_method - metoda selekcji ('tournament' lub 'roulette', domyślnie 'tournament')
+%     .tournament_size - rozmiar turnieju (domyślnie 3)
 %
 % Zwraca:
 %   best_net - najlepsza wytrenowana sieć neuronowa
@@ -31,6 +39,7 @@ if nargin < 1
     config = struct();
 end
 
+% Parametry podstawowe
 default_config = struct(...
     'noise_level', 0.1, ...
     'num_samples', 5, ...
@@ -41,15 +50,45 @@ default_config = struct(...
     'max_trials', 20, ...
     'golden_accuracy', 0.95, ...
     'show_visualizations', true, ...
-    'early_stopping', true);
+    'early_stopping', true, ...
+    'optimization_method', 'random');
 
-% Uzupełnienie brakujących pól domyślnymi wartościami
+% Parametry algorytmu genetycznego
+genetic_config = struct(...
+    'population_size', 10, ...
+    'num_generations', 4, ...
+    'mutation_rate', 0.2, ...
+    'crossover_rate', 0.8, ...
+    'elite_count', 2, ...
+    'selection_method', 'tournament', ...
+    'tournament_size', 3);
+
+% Uzupełnienie brakujących pól podstawowych
 field_names = fieldnames(default_config);
 for i = 1:length(field_names)
     field = field_names{i};
     if ~isfield(config, field)
         config.(field) = default_config.(field);
     end
+end
+
+% Uzupełnienie pól algorytmu genetycznego, jeśli wybrana jest ta metoda
+if strcmp(config.optimization_method, 'genetic')
+    field_names = fieldnames(genetic_config);
+    for i = 1:length(field_names)
+        field = field_names{i};
+        if ~isfield(config, field)
+            config.(field) = genetic_config.(field);
+        end
+    end
+    
+    % Informacja o konfiguracji algorytmu genetycznego
+    logInfo('🧬 Optymalizacja algorytmem genetycznym: populacja=%d, generacje=%d', ...
+        config.population_size, config.num_generations);
+    logInfo('🧬 Parametry genetyczne: mutacja=%.2f, krzyżowanie=%.2f, elita=%d, selekcja=%s', ...
+        config.mutation_rate, config.crossover_rate, config.elite_count, config.selection_method);
+else
+    logInfo('🔍 Optymalizacja metodą Random Search: próby=%d', config.max_trials);
 end
 
 % Dostosowanie parametrów na podstawie scenariusza
@@ -131,13 +170,8 @@ logInfo('📊 Zestawienie danych: %d próbek, %d cech, %d klas', ...
 logInfo('🧠 Krok 2: Porównanie typów sieci neuronowych...');
 step2_time = tic;
 
-% Konfiguracja dla porównania sieci
-comparison_config = struct(...
-    'max_trials', config.max_trials, ...
-    'golden_accuracy', config.golden_accuracy, ...
-    'scenario', config.scenario, ...
-    'show_visualizations', config.show_visualizations, ...
-    'early_stopping', config.early_stopping);
+% Przekazanie konfiguracji do porównania sieci
+comparison_config = config; % Wszystkie parametry
 
 logInfo('🔍 Rozpoczynam proces porównania i optymalizacji sieci...');
 
@@ -150,7 +184,12 @@ results.comparison = comparison_results;
 % Określenie zwycięskiego typu sieci
 winner_type = comparison_results.comparison.winner;
 logSuccess('🏆 Zwycięski typ sieci: %s (dokładność: %.2f%%)', ...
-    winner_type, comparison_results.comparison.accuracy_gain * 100);
+    winner_type, comparison_results.patternnet.evaluation.accuracy * 100);
+
+if ~strcmp(winner_type, 'tie')
+    winner_accuracy = comparison_results.comparison.accuracy_gain * 100;
+    logSuccess('🏆 Przewaga nad drugim typem: %.2f%%', winner_accuracy);
+end
 
 % Określenie najlepszej sieci (do zwrócenia jako wynik funkcji)
 if strcmp(winner_type, 'patternnet')
@@ -180,8 +219,12 @@ logSuccess('✅ Cały proces zakończony w %.2f sekund', results.total_time);
 % Podsumowanie wyników
 logInfo('📋 PODSUMOWANIE PORÓWNANIA:');
 logInfo('   Scenariusz: %s', config.scenario);
+logInfo('   Metoda optymalizacji: %s', config.optimization_method);
 logInfo('   Zwycięzca: %s (dokładność: %.2f%%)', winner_type, best_accuracy * 100);
-logInfo('   Przewaga dokładności: %.2f%%', comparison_results.comparison.accuracy_gain * 100);
+
+if ~strcmp(winner_type, 'tie')
+    logInfo('   Przewaga dokładności: %.2f%%', comparison_results.comparison.accuracy_gain * 100);
+end
 
 % Złote parametry dla obu sieci
 if comparison_results.comparison.pattern_golden

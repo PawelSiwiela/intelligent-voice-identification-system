@@ -41,9 +41,17 @@ patternnet_config = config;
 patternnet_config.network_types = {'patternnet'};
 patternnet_config.X_test = X_test;  % Dodaj dane testowe do konfiguracji
 patternnet_config.Y_test = Y_test;
+patternnet_config.X_val = X_val;    % Dodaj dane walidacyjne do konfiguracji
+patternnet_config.Y_val = Y_val;
 
-% Uruchomienie optymalizatora patternnet
-[pattern_net, pattern_tr, pattern_results] = randomSearchOptimizer(X_train_opt, Y_train_opt, labels, patternnet_config);
+% Wybór metody optymalizacji
+if isfield(config, 'optimization_method') && strcmp(config.optimization_method, 'genetic')
+    % Uruchomienie optymalizatora genetycznego dla patternnet
+    [pattern_net, pattern_tr, pattern_results] = geneticOptimizer(X_train_opt, Y_train_opt, labels, patternnet_config);
+else
+    % Domyślnie - random search
+    [pattern_net, pattern_tr, pattern_results] = randomSearchOptimizer(X_train_opt, Y_train_opt, labels, patternnet_config);
+end
 
 logSuccess('✅ Najlepsza dokładność dla patternnet: %.2f%%', pattern_results.best_accuracy * 100);
 
@@ -57,9 +65,17 @@ feedforward_config = config;
 feedforward_config.network_types = {'feedforwardnet'};
 feedforward_config.X_test = X_test;
 feedforward_config.Y_test = Y_test;
+feedforward_config.X_val = X_val;
+feedforward_config.Y_val = Y_val;
 
-% Uruchomienie optymalizatora feedforwardnet
-[feedforward_net, feedforward_tr, feedforward_results] = randomSearchOptimizer(X_train_opt, Y_train_opt, labels, feedforward_config);
+% Wybór metody optymalizacji
+if isfield(config, 'optimization_method') && strcmp(config.optimization_method, 'genetic')
+    % Uruchomienie optymalizatora genetycznego dla feedforwardnet
+    [feedforward_net, feedforward_tr, feedforward_results] = geneticOptimizer(X_train_opt, Y_train_opt, labels, feedforward_config);
+else
+    % Domyślnie - random search
+    [feedforward_net, feedforward_tr, feedforward_results] = randomSearchOptimizer(X_train_opt, Y_train_opt, labels, feedforward_config);
+end
 
 logSuccess('✅ Najlepsza dokładność dla feedforwardnet: %.2f%%', feedforward_results.best_accuracy * 100);
 
@@ -129,8 +145,16 @@ else
 end
 
 % Osiągnięcie progu 95% dokładności
-comparison_results.comparison.pattern_golden = pattern_results.golden_found;
-comparison_results.comparison.feedforward_golden = feedforward_results.golden_found;
+comparison_results.comparison.pattern_golden = false;
+comparison_results.comparison.feedforward_golden = false;
+
+if isfield(pattern_results, 'golden_found')
+    comparison_results.comparison.pattern_golden = pattern_results.golden_found;
+end
+
+if isfield(feedforward_results, 'golden_found')
+    comparison_results.comparison.feedforward_golden = feedforward_results.golden_found;
+end
 
 % Informacja która sieć była szybciej wytrenowana
 if isfield(pattern_results, 'best_training_time') && isfield(feedforward_results, 'best_training_time')
@@ -148,6 +172,13 @@ comparison_results.comparison.precision_diff = pattern_evaluation.macro_precisio
 comparison_results.comparison.recall_diff = pattern_evaluation.macro_recall - feedforward_evaluation.macro_recall;
 comparison_results.comparison.f1_diff = pattern_evaluation.macro_f1 - feedforward_evaluation.macro_f1;
 comparison_results.comparison.prediction_time_diff = pattern_evaluation.prediction_time - feedforward_evaluation.prediction_time;
+
+% Informacja o metodzie optymalizacji
+if isfield(config, 'optimization_method')
+    comparison_results.comparison.optimization_method = config.optimization_method;
+else
+    comparison_results.comparison.optimization_method = 'random';
+end
 
 logSuccess('✅ Analiza zakończona. Zwycięzca: %s (przewaga: %.2f%%)', ...
     comparison_results.comparison.winner, ...
@@ -197,8 +228,8 @@ if isfield(config, 'show_visualizations') && config.show_visualizations
         y_pred_feedforward = feedforward_net(X_test');
         y_true = Y_test';
         
-        visualizeROC(y_pred_pattern, y_true, 'Patternnet', viz_file6);
-        visualizeROC(y_pred_feedforward, y_true, 'Feedforwardnet', viz_file7);
+        visualizeROC(y_pred_pattern, y_true, 'Patternnet', viz_file6, labels);
+        visualizeROC(y_pred_feedforward, y_true, 'Feedforwardnet', viz_file7, labels);
         
         % Wizualizacja struktury sieci
         viz_file8 = fullfile(viz_dir, 'structure_patternnet.png');
@@ -207,9 +238,29 @@ if isfield(config, 'show_visualizations') && config.show_visualizations
         visualizeNetworkStructure(pattern_net, sprintf('Struktura sieci %s', 'Patternnet'), viz_file8);
         visualizeNetworkStructure(feedforward_net, sprintf('Struktura sieci %s', 'Feedforwardnet'), viz_file9);
         
+        % Zapisanie informacji o metodzie optymalizacji
+        optim_info_file = fullfile(viz_dir, 'optimization_info.txt');
+        fid = fopen(optim_info_file, 'w');
+        fprintf(fid, 'Metoda optymalizacji: %s\n', comparison_results.comparison.optimization_method);
+        
+        if strcmp(comparison_results.comparison.optimization_method, 'genetic')
+            fprintf(fid, 'Parametry algorytmu genetycznego:\n');
+            fprintf(fid, '- Rozmiar populacji: %d\n', config.population_size);
+            fprintf(fid, '- Liczba generacji: %d\n', config.num_generations);
+            fprintf(fid, '- Współczynnik mutacji: %.2f\n', config.mutation_rate);
+            fprintf(fid, '- Współczynnik krzyżowania: %.2f\n', config.crossover_rate);
+            fprintf(fid, '- Rozmiar elity: %d\n', config.elite_count);
+            fprintf(fid, '- Metoda selekcji: %s\n', config.selection_method);
+        else
+            fprintf(fid, 'Parametry Random Search:\n');
+            fprintf(fid, '- Liczba prób: %d\n', config.max_trials);
+        end
+        fclose(fid);
+        
         logSuccess('✅ Wizualizacje wygenerowane i zapisane do: %s', viz_dir);
     catch e
         logWarning('⚠️ Problem z generowaniem lub zapisywaniem wizualizacji: %s', e.message);
+        disp(e.stack);
     end
 end
 
