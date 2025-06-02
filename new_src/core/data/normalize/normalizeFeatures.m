@@ -19,6 +19,8 @@ normalized_data = zeros(size(data_matrix));
 
 % Parametry normalizacji do późniejszego użycia
 norm_params = struct();
+means = zeros(1, size(data_matrix, 2));
+stds = zeros(1, size(data_matrix, 2));
 scaling_factors = zeros(1, size(data_matrix, 2));
 
 logInfo('🔢 Normalizacja %d cech do zakresu [-1, 1]...', size(data_matrix, 2));

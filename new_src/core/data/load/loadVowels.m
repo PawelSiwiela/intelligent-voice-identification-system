@@ -23,8 +23,8 @@ function [X, Y, successful_loads, failed_loads] = loadVowels(X, Y, vowels, num_v
 
 % Sprawdzenie istnienia folderu z samogłoskami
 if ~exist(simple_path, 'dir')
-    logError('❌ Folder z samogłoskami nie został znaleziony! Ścieżka: %s', simple_path);
-    error('Folder z samogłoskami nie został znaleziony! Ścieżka: %s', simple_path);
+    logError('❌ Folder z samogłoskami nie istnieje: %s', simple_path);
+    error('Folder z samogłoskami nie istnieje: %s', simple_path);
 end
 
 logInfo('🔄 Rozpoczynam wczytywanie samogłosek...');
@@ -73,27 +73,25 @@ for v = 1:num_vowels
         
         logDebug('🎧 Przetwarzanie: %s [%d/%d]', file_path, i, max_files);
         
-        % Przetwarzanie pliku audio
+        % Preprocessing audio z filtracją adaptacyjną i ekstrakcją cech
         try
-            % Używamy funkcji preprocessAudio
             [features, ~] = preprocessAudio(file_path, noise_level);
             
-            % Zapewnienie stałego wymiaru cech
+            % Walidacja wymiaru cech (musi być zawsze 40)
             if length(features) < feature_dim
-                % Jeśli wektor cech jest za krótki - dopełnij zerami
                 features = [features, zeros(1, feature_dim - length(features))];
             elseif length(features) > feature_dim
-                % Jeśli wektor cech jest za długi - przytnij
                 features = features(1:feature_dim);
             end
             
-            % Dodaj do macierzy cech
+            % Dodanie próbki do zbioru danych
             X = [X; features];
             
-            % Tworzenie etykiety one-hot dla samogłoski
+            % Utworzenie etykiety one-hot dla kategorii
             label = zeros(1, total_categories);
             label(v) = 1;
             Y = [Y; label];
+            
             successful_loads = successful_loads + 1;
             logDebug('✅ Sukces: %s', file_path);
             

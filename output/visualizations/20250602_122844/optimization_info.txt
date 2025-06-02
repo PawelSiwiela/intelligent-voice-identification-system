@@ -1,0 +1,8 @@
+Metoda optymalizacji: genetic
+Parametry algorytmu genetycznego:
+- Rozmiar populacji: 12
+- Liczba generacji: 5
+- Współczynnik mutacji: 0.20
+- Współczynnik krzyżowania: 0.80
+- Rozmiar elity: 2
+- Metoda selekcji: tournament

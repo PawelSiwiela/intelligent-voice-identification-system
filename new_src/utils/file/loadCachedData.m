@@ -60,7 +60,7 @@ function flag_text = selectFlag(flag, text)
 if flag
     flag_text = text;
 else
-    flag_text = 'no_' + text;
+    flag_text = ['no_' text];
 end
 end
 

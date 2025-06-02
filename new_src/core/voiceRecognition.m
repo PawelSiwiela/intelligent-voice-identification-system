@@ -128,13 +128,26 @@ logInfo('🔄 Krok 1: Wczytywanie danych audio...');
 step1_time = tic;
 
 try
-    % Wczytanie danych audio
+    % Mapowanie scenariusza na parametry wczytywania danych
+    switch config.scenario
+        case 'vowels'
+            use_vowels = true;
+            use_complex = false;
+        case 'commands'
+            use_vowels = false;
+            use_complex = true;
+        case 'all'
+            use_vowels = true;
+            use_complex = true;
+        otherwise
+            logWarning('⚠️ Nieznany scenariusz: %s. Używam wszystkich danych.', config.scenario);
+            use_vowels = true;
+            use_complex = true;
+    end
+    
+    % Wczytanie danych audio z automatycznym preprocessingiem
     [X, Y, labels, successful_loads, failed_loads] = loadAudioData(...
-        config.noise_level, ...
-        config.num_samples, ...
-        config.use_vowels, ...
-        config.use_complex, ...
-        config.normalize_features);
+        config.noise_level, config.num_samples, use_vowels, use_complex, config.normalize_features);
     
     logInfo('✅ Wczytano %d próbek (%d nieudanych) z %d kategorii', ...
         successful_loads, failed_loads, length(labels));
