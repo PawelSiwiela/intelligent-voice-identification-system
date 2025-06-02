@@ -7,7 +7,7 @@
 close all; clear all; clc;
 
 % Dodanie ścieżek projektu
-addpath(genpath('new_src'));
+addpath(genpath('src'));
 
 fprintf('=== SYSTEM ROZPOZNAWANIA MOWY ===\n\n');
 
