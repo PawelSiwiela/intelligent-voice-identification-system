@@ -1,4 +1,12 @@
 function logError(message, varargin)
-% Komunikat błędu
+% LOGERROR Zapisuje komunikat błędu
+%
+% Składnia:
+%   logError(message, varargin)
+%
+% Argumenty:
+%   message - treść komunikatu
+%   varargin - opcjonalne parametry do formatowania wiadomości
+
 writeLog('ERROR', message, varargin{:});
 end

@@ -1,20 +1,16 @@
 function closeLog()
-% =========================================================================
-% ZAMKNIĘCIE PLIKU LOG
-% =========================================================================
-% Bezpiecznie zamyka plik log na końcu programu
+% CLOSELOG Bezpiecznie zamyka plik log na końcu programu
+%
+% Składnia:
+%   closeLog()
+%
+% Ta funkcja powinna być wywołana przed zakończeniem programu,
+% aby zapewnić poprawne zamknięcie pliku logu.
 
-persistent log_file_handle;
-
-% Dostęp do zmiennych z writeLog
-log_vars = evalin('base', 'who');
-if ismember('log_file_handle', log_vars)
-    log_file_handle = evalin('base', 'log_file_handle');
-end
-
-% Alternatywnie - użyj globalnej zmiennej
+% Dostęp do globalnej zmiennej przechowującej uchwyt do pliku
 global LOG_FILE_HANDLE;
 
+% Sprawdź czy plik jest otwarty
 if ~isempty(LOG_FILE_HANDLE) && LOG_FILE_HANDLE ~= -1
     % Zapis końcowego komunikatu
     fprintf(LOG_FILE_HANDLE, '\n========================================\n');
@@ -23,9 +19,8 @@ if ~isempty(LOG_FILE_HANDLE) && LOG_FILE_HANDLE ~= -1
     
     % Zamknięcie pliku
     fclose(LOG_FILE_HANDLE);
-    LOG_FILE_HANDLE = [];
+    LOG_FILE_HANDLE = -1;
     
     fprintf('📝 Plik log został zamknięty\n');
 end
-
 end

@@ -267,6 +267,117 @@ if isfield(config, 'show_visualizations') && config.show_visualizations
     end
 end
 
+% Wizualizacje (opcjonalne)
+if isfield(config, 'generate_visualizations') && config.generate_visualizations
+    try
+        % Przygotowanie foldera wizualizacji z lepszą nazwą
+        timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+        
+        % Generowanie opisowych składników nazwy
+        scenario_suffix = getScenarioSuffix(config.scenario);
+        norm_suffix = getNormalizationSuffix(config.normalize_features);
+        
+        viz_dir = fullfile('output', 'visualizations', ...
+            sprintf('%s_%s_%s', scenario_suffix, norm_suffix, timestamp));
+        
+        if ~exist(viz_dir, 'dir')
+            mkdir(viz_dir);
+            logInfo('📁 Utworzono katalog wizualizacji: %s', viz_dir);
+        end
+        
+        % Generowanie nazw plików z opisowymi prefiksami
+        confusion_pattern_file = fullfile(viz_dir, ...
+            sprintf('confusion_patternnet_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+        confusion_feedforward_file = fullfile(viz_dir, ...
+            sprintf('confusion_feedforward_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+        
+        metrics_comparison_file = fullfile(viz_dir, ...
+            sprintf('metrics_comparison_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+        
+        training_pattern_file = fullfile(viz_dir, ...
+            sprintf('training_patternnet_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+        training_feedforward_file = fullfile(viz_dir, ...
+            sprintf('training_feedforward_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+        
+        roc_pattern_file = fullfile(viz_dir, ...
+            sprintf('roc_patternnet_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+        roc_feedforward_file = fullfile(viz_dir, ...
+            sprintf('roc_feedforward_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+        
+        structure_pattern_file = fullfile(viz_dir, ...
+            sprintf('structure_patternnet_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+        structure_feedforward_file = fullfile(viz_dir, ...
+            sprintf('structure_feedforward_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+        
+        % Macierze pomyłek dla obu sieci
+        visualizeConfusionMatrix(pattern_evaluation.confusion_matrix, labels, ...
+            sprintf('Macierz konfuzji - Patternnet (%s, %s)', scenario_suffix, norm_suffix), ...
+            confusion_pattern_file);
+        
+        visualizeConfusionMatrix(feedforward_evaluation.confusion_matrix, labels, ...
+            sprintf('Macierz konfuzji - Feedforwardnet (%s, %s)', scenario_suffix, norm_suffix), ...
+            confusion_feedforward_file);
+        
+        % Wizualizacja porównania metryk
+        visualizeMetricsComparison(pattern_evaluation, feedforward_evaluation, ...
+            'Patternnet', 'Feedforwardnet', metrics_comparison_file);
+        
+        % Wizualizacja postępu treningu
+        visualizeTrainingProgress(pattern_tr, ...
+            sprintf('Patternnet (%s, %s)', scenario_suffix, norm_suffix), training_pattern_file);
+        visualizeTrainingProgress(feedforward_tr, ...
+            sprintf('Feedforwardnet (%s, %s)', scenario_suffix, norm_suffix), training_feedforward_file);
+        
+        % Wizualizacja krzywych ROC
+        y_pred_pattern = pattern_net(X_test');
+        y_pred_feedforward = feedforward_net(X_test');
+        y_true = Y_test';
+        
+        visualizeROC(y_pred_pattern, y_true, ...
+            sprintf('Patternnet (%s, %s)', scenario_suffix, norm_suffix), roc_pattern_file, labels);
+        visualizeROC(y_pred_feedforward, y_true, ...
+            sprintf('Feedforwardnet (%s, %s)', scenario_suffix, norm_suffix), roc_feedforward_file, labels);
+        
+        % Wizualizacja struktury sieci
+        visualizeNetworkStructure(pattern_net, ...
+            sprintf('Struktura Patternnet (%s, %s)', scenario_suffix, norm_suffix), structure_pattern_file);
+        visualizeNetworkStructure(feedforward_net, ...
+            sprintf('Struktura Feedforwardnet (%s, %s)', scenario_suffix, norm_suffix), structure_feedforward_file);
+        
+        logSuccess('✅ Wizualizacje opisowe wygenerowane i zapisane do: %s', viz_dir);
+    catch e
+        logWarning('⚠️ Problem z generowaniem lub zapisywaniem wizualizacji opisowych: %s', e.message);
+        disp(e.stack);
+    end
+end
+
 logSuccess('✅ Porównanie sieci zakończone.');
 
+end
+
+% =========================================================================
+% FUNKCJE POMOCNICZE DO GENEROWANIA NAZW
+% =========================================================================
+
+function suffix = getScenarioSuffix(scenario)
+% Generuje krótki sufiks dla scenariusza
+switch scenario
+    case 'vowels'
+        suffix = 'vowels';
+    case 'commands'
+        suffix = 'commands';
+    case 'all'
+        suffix = 'all';
+    otherwise
+        suffix = 'unknown';
+end
+end
+
+function suffix = getNormalizationSuffix(normalize_features)
+% Generuje sufiks dla stanu normalizacji
+if normalize_features
+    suffix = 'norm';
+else
+    suffix = 'raw';
+end
 end

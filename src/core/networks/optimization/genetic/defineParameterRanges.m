@@ -38,32 +38,21 @@ switch config.scenario
     case 'commands'
         % Konfiguracja dla komend - średnio złożony problem
         param_ranges.hidden_layers = {
-            [10], [15], [20]
+            [19], [20], [21], [22], [23], [24], [25], [26], [27], [28]
             };
-        param_ranges.training_algs = {'trainscg', 'trainlm', 'traingdx', 'traincgb'};
+        param_ranges.training_algs = {'trainbr', 'trainlm'};
         param_ranges.activation_functions = {'logsig', 'tansig'};
         param_ranges.epochs_range = [150, 200, 300];
         param_ranges.learning_rates = [0.01, 0.015, 0.02, 0.025, 0.03];
         
     case 'all'
         % ZOPTYMALIZOWANA KONFIGURACJA - skupiamy się na eksploatacji najlepszych znanych parametrów
-        
-        % Zawężamy poszukiwania do najlepszych jednowarstwowych architektur
         param_ranges.hidden_layers = {
-            % Najlepsze stwierdzone liczby neuronów - większa gęstość
             [19], [20], [21], [22], [23], [24], [25], [26], [27], [28]
             };
-        
-        % Skupienie na najlepszych algorytmach
-        param_ranges.training_algs = {'trainlm', 'trainbr'};  % zdecydowanie najlepszy algorytm
-        
-        % Funkcje aktywacji
+        param_ranges.training_algs = {'trainlm', 'trainbr'};
         param_ranges.activation_functions = {'tansig', 'logsig'};
-        
-        % Precyzyjne strojenie learning rate wokół najlepszych wartości
         param_ranges.learning_rates = [0.01, 0.012, 0.014, 0.016, 0.018, 0.02];
-        
-        % Optymalne epoki
         param_ranges.epochs_range = [300, 350, 400];
         
     otherwise

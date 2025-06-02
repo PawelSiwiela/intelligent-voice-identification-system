@@ -1,29 +1,23 @@
-function best_params = optimizeAdaptiveFilterParams(y, noise_level)
-% =========================================================================
-% OPTYMALIZACJA PARAMETRÓW FILTRÓW ADAPTACYJNYCH
-% =========================================================================
-% Funkcja optymalizuje parametry dla trzech typów filtrów adaptacyjnych:
-% LMS, NLMS i RLS w celu minimalizacji błędu średniokwadratowego (MSE)
-% przy jednoczesnym zachowaniu akceptowalnego czasu wykonania
+function best_params = optimizeAdaptiveFilterParams(signal, noise_level)
+% OPTIMIZEADAPTIVEFILTERPARAMS Optymalizacja parametrów filtrów adaptacyjnych
 %
-% ARGUMENTY:
-%   y - oryginalny sygnał wejściowy (wektor)
+% Składnia:
+%   best_params = optimizeAdaptiveFilterParams(signal, noise_level)
+%
+% Argumenty:
+%   signal - oryginalny sygnał wejściowy (wektor)
 %   noise_level - poziom szumu dodawanego do sygnału (0.0-1.0)
 %
-% ZWRACA:
+% Zwraca:
 %   best_params - struktura zawierająca optymalne parametry dla wszystkich filtrów:
-%     .M_lms, .mi - parametry filtru LMS
-%     .M_nlms, .alfa, .beta - parametry filtru NLMS
-%     .M_rls, .lambda, .delta - parametry filtru RLS
-%     .time_lms, .time_nlms, .time_rls - czasy wykonania
-%     .mse_noisy, .noise_level - informacje o sygnale
-% =========================================================================
+%     - M_lms, mi - parametry filtru LMS
+%     - M_nlms, alfa, beta - parametry filtru NLMS
+%     - M_rls, lambda, delta - parametry filtru RLS
+%     - time_lms, time_nlms, time_rls - czasy wykonania
+%     - mse_noisy, noise_level - informacje o sygnale
 
-% =========================================================================
 % PARAMETRY PODSTAWOWE
-% =========================================================================
-
-N = length(y);           % Długość sygnału wejściowego
+N = length(signal);           % Długość sygnału wejściowego
 logDebug('Optymalizacja filtrów: długość sygnału=%d próbek', N);
 
 % Zakresy parametrów do przeszukiwania dla optymalizacji
@@ -34,19 +28,16 @@ beta_range = [1e-6, 1e-4, 1e-2];          % Stała regularyzacji dla NLMS
 lambda_range = [0.95, 0.99];              % Współczynnik zapominania dla RLS
 delta_range = [0.01, 0.1, 1];             % Stała inicjalizacji macierzy P dla RLS
 
-% =========================================================================
 % PRZYGOTOWANIE SYGNAŁU TESTOWEGO
-% =========================================================================
 
 % Dodanie szumu gaussowskiego do oryginalnego sygnału
-noisy_signal = y + noise_level * randn(size(y));
+noisy_signal = signal + noise_level * randn(size(signal));
+y = signal;
 
 % Obliczenie MSE sygnału zaszumionego (referencja do porównań)
 mse_noisy = mean((y - noisy_signal).^2);
 
-% =========================================================================
 % KONFIGURACJA SYSTEMU OCENY
-% =========================================================================
 
 % Wagi dla funkcji oceny (muszą sumować się do 1.0)
 mse_weight = 0.95;       % Waga dla dokładności filtracji (95%)
@@ -54,11 +45,9 @@ order_weight = 0.01;     % Waga dla złożoności filtru (1%)
 time_weight = 0.04;      % Waga dla szybkości wykonania (4%)
 
 % Maksymalny akceptowalny czas wykonania filtracji (w sekundach)
-max_acceptable_time = 0.3;
+max_acceptable_time = 0.4;
 
-% =========================================================================
 % INICJALIZACJA ZMIENNYCH WYNIKOWYCH
-% =========================================================================
 
 % Najlepsze wyniki dla każdego typu filtru
 best_score_lms = Inf;    % Najlepszy wynik oceny dla LMS
@@ -68,11 +57,7 @@ best_score_rls = Inf;    % Najlepszy wynik oceny dla RLS
 % Struktura przechowująca optymalne parametry
 best_params = struct();
 
-% =========================================================================
 % OPTYMALIZACJA FILTRU LMS (Least Mean Squares)
-% =========================================================================
-
-%fprintf('🔧 Optymalizacja parametrów filtru LMS...\n');
 too_slow_lms = false;    % Flaga sygnalizująca przekrocenie limitu czasu
 
 for M_test = M_range
@@ -130,19 +115,15 @@ for M_test = M_range
                 best_params.mi = mi_test;
                 best_params.time_lms = execution_time;
             end
-        catch ME
+        catch e
             logError('Błąd inicjalizacji/wykonania filtru LMS (M=%d, mi=%.3f): %s', ...
-                M_test, mi_test, ME.message);
+                M_test, mi_test, e.message);
             continue; % Przejdź do następnej kombinacji parametrów
         end
     end
 end
 
-% =========================================================================
 % OPTYMALIZACJA FILTRU NLMS (Normalized Least Mean Squares)
-% =========================================================================
-
-%fprintf('🔧 Optymalizacja parametrów filtru NLMS...\n');
 for M_test = M_range
     if too_slow_lms
         break;
@@ -200,9 +181,9 @@ for M_test = M_range
                     best_params.beta = beta_test;
                     best_params.time_nlms = execution_time;
                 end
-            catch ME
+            catch e
                 logError('Błąd inicjalizacji/wykonania filtru NLMS (M=%d, alfa=%.2f, beta=%.1e): %s', ...
-                    M_test, alfa_test, beta_test, ME.message);
+                    M_test, alfa_test, beta_test, e.message);
                 continue; % Przejdź do następnej kombinacji
             end
         end
@@ -213,14 +194,8 @@ for M_test = M_range
     end
 end
 
-% =========================================================================
 % OPTYMALIZACJA FILTRU RLS (Recursive Least Squares)
-% =========================================================================
-
-%fprintf('🔧 Optymalizacja parametrów filtru RLS...\n');
 for M_test = M_range
-    logDebug('Testowanie filtru RLS: M=%d', M_test);
-    
     if too_slow_lms
         break;
     end
@@ -235,8 +210,8 @@ for M_test = M_range
             w = zeros(M_test, 1);                    % Wektor współczynników
             try
                 P = (1/delta_test) * eye(M_test);        % Macierz kowariancji odwrotna
-            catch ME
-                logError('Błąd inicjalizacji filtru RLS (M=%d): %s', M_test, ME.message);
+            catch e
+                logError('Błąd inicjalizacji filtru RLS (M=%d): %s', M_test, e.message);
                 continue; % Przejdź do następnego M_test
             end
             x_buff = zeros(M_test, 1);               % Bufor danych
@@ -295,14 +270,10 @@ for M_test = M_range
     end
 end
 
-% =========================================================================
 % FINALIZACJA WYNIKÓW
-% =========================================================================
 
 % Dodanie metadanych do struktury wynikowej
 best_params.mse_noisy = mse_noisy;        % MSE sygnału zaszumionego
 best_params.noise_level = noise_level;    % Poziom zastosowanego szumu
-
-%fprintf('✅ Optymalizacja parametrów filtrów adaptacyjnych zakończona.\n');
 
 end

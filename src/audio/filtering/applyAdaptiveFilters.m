@@ -1,34 +1,26 @@
 function [filtered_signal, mse_improvement] = applyAdaptiveFilters(noisy_signal, original_signal)
-% =========================================================================
-% ZASTOSOWANIE FILTRÓW ADAPTACYJNYCH DO SYGNAŁU AUDIO
-% =========================================================================
-% Funkcja stosuje trzy rodzaje filtrów adaptacyjnych (LMS, NLMS, RLS)
-% do zaszumionego sygnału i wybiera najlepszy wynik na podstawie MSE
+% APPLYADAPTIVEFILTERS Zastosowanie filtrów adaptacyjnych do sygnału audio
 %
-% ARGUMENTY:
+% Składnia:
+%   [filtered_signal, mse_improvement] = applyAdaptiveFilters(noisy_signal, original_signal)
+%
+% Argumenty:
 %   noisy_signal - sygnał wejściowy z dodanym szumem
 %   original_signal - oryginalny sygnał bez szumu (dla porównania)
 %
-% ZWRACA:
+% Zwraca:
 %   filtered_signal - przefiltrowany sygnał (najlepszy z trzech metod)
 %   mse_improvement - wartość MSE dla wybranego filtru
 %
-% ALGORYTMY:
-%   • LMS (Least Mean Squares) - prosty algorytm adaptacyjny
-%   • NLMS (Normalized LMS) - LMS z normalizacją kroku
-%   • RLS (Recursive Least Squares) - algorytm o szybkiej zbieżności
-% =========================================================================
+% Funkcja stosuje trzy rodzaje filtrów adaptacyjnych (LMS, NLMS, RLS)
+% do zaszumionego sygnału i wybiera najlepszy wynik na podstawie MSE.
 
-% =========================================================================
-% OPTYMALIZACJA PARAMETRÓW FILTRÓW
-% =========================================================================
-
-% Wywołanie funkcji optymalizacji parametrów dla wszystkich filtrów
+% Optymalizacja parametrów filtrów
 try
     logDebug('⚙️ Optymalizacja parametrów filtrów adaptacyjnych...');
     best_params = optimizeAdaptiveFilterParams(original_signal, 0.1);
-catch ME
-    logError('Błąd optymalizacji filtrów: %s. Używam domyślnych parametrów.', ME.message);
+catch e
+    logError('Błąd optymalizacji filtrów: %s. Używam domyślnych parametrów.', e.message);
     
     % DOMYŚLNE BEZPIECZNE PARAMETRY
     N = length(noisy_signal);
@@ -47,7 +39,7 @@ catch ME
     logInfo('🔧 Używam domyślnych parametrów: rząd=%d', safe_order);
 end
 
-% Wyciągnięcie optymalnych parametrów z struktury wynikowej
+% Wyciągnięcie optymalnych parametrów ze struktury wynikowej
 M_lms = best_params.M_lms;        % Rząd filtru LMS
 M_nlms = best_params.M_nlms;      % Rząd filtru NLMS
 M_rls = best_params.M_rls;        % Rząd filtru RLS
@@ -57,15 +49,10 @@ beta = best_params.beta;          % Stała regularyzacji NLMS
 lambda = best_params.lambda;      % Współczynnik zapominania RLS
 delta = best_params.delta;        % Parametr inicjalizacji RLS
 
-% =========================================================================
 % PRZYGOTOWANIE ZMIENNYCH
-% =========================================================================
-
 N = length(noisy_signal);         % Długość sygnału
 
-% =========================================================================
 % INICJALIZACJA FILTRÓW ADAPTACYJNYCH
-% =========================================================================
 
 % Filtr LMS
 w_lms = zeros(M_lms, 1);          % Wektor współczynników LMS
@@ -83,19 +70,13 @@ P = (1/delta) * eye(M_rls);       % Macierz kowariancji odwrotna RLS
 x_buff_rls = zeros(M_rls, 1);     % Bufor danych wejściowych RLS
 y_rls = zeros(N, 1);              % Sygnał wyjściowy RLS
 
-% =========================================================================
 % RÓWNOLEGŁA FILTRACJA TRZEMA METODAMI
-% =========================================================================
-
-%fprintf('🔄 Filtracja sygnału trzema metodami adaptacyjnymi...\n');
 
 % Określenie punktu startowego (największy rząd filtru)
 start_index = max([M_lms, M_nlms, M_rls]);
 
 for n = start_index:N
-    % =====================================================================
     % FILTRACJA METODĄ LMS
-    % =====================================================================
     if n >= M_lms
         % Aktualizacja bufora danych (okno przesuwne)
         x_buff_lms = [noisy_signal(n); x_buff_lms(1:M_lms-1)];
@@ -110,9 +91,7 @@ for n = start_index:N
         w_lms = w_lms + mi * e_lms * x_buff_lms;
     end
     
-    % =====================================================================
     % FILTRACJA METODĄ NLMS
-    % =====================================================================
     if n >= M_nlms
         % Aktualizacja bufora danych
         x_buff_nlms = [noisy_signal(n); x_buff_nlms(1:M_nlms-1)];
@@ -128,9 +107,7 @@ for n = start_index:N
         w_nlms = w_nlms + (alfa / normalization) * e_nlms * x_buff_nlms;
     end
     
-    % =====================================================================
     % FILTRACJA METODĄ RLS
-    % =====================================================================
     if n >= M_rls
         % Aktualizacja bufora danych
         x_buff_rls = [noisy_signal(n); x_buff_rls(1:M_rls-1)];
@@ -153,9 +130,7 @@ for n = start_index:N
     end
 end
 
-% =========================================================================
 % PORÓWNANIE WYNIKÓW I WYBÓR NAJLEPSZEGO FILTRU
-% =========================================================================
 
 % Obliczenie MSE dla każdego algorytmu
 mse_lms = mean((original_signal - y_lms).^2);
@@ -170,21 +145,16 @@ filter_names = {'LMS', 'NLMS', 'RLS'};
 switch best_idx
     case 1
         filtered_signal = y_lms;
-        %fprintf('✅ Wybrano filtr LMS (MSE: %.6f)\n', mse_lms);
     case 2
         filtered_signal = y_nlms;
-        %fprintf('✅ Wybrano filtr NLMS (MSE: %.6f)\n', mse_nlms);
     case 3
         filtered_signal = y_rls;
-        %fprintf('✅ Wybrano filtr RLS (MSE: %.6f)\n', mse_rls);
 end
 
 % Zwrócenie MSE najlepszego filtru
 mse_improvement = best_mse;
 
-% =========================================================================
 % STATYSTYKI WYDAJNOŚCI
-% =========================================================================
 
 % Obliczenie MSE sygnału zaszumionego (referencja)
 mse_noisy = mean((original_signal - noisy_signal).^2);
@@ -192,10 +162,6 @@ mse_noisy = mean((original_signal - noisy_signal).^2);
 % Obliczenie procentowej poprawy
 if mse_noisy > 0
     improvement_percent = 100 * (mse_noisy - best_mse) / mse_noisy;
-    %fprintf('📈 Poprawa jakości sygnału: %.1f%% (MSE: %.6f → %.6f)\n', ...
-    %    improvement_percent, mse_noisy, best_mse);
-else
-    %fprintf('⚠️ Nie można obliczyć poprawy - MSE sygnału zaszumionego wynosi 0\n');
 end
 
 end

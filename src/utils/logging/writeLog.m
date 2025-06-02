@@ -1,102 +1,84 @@
 function writeLog(level, message, varargin)
-% =========================================================================
-% SYSTEM LOGOWANIA
-% =========================================================================
-% Zapisuje komunikaty do pliku log i wyświetla w konsoli
+% WRITELOG Zapisuje komunikat do pliku logu i wyświetla go w konsoli
 %
-% ARGUMENTY:
-%   level - poziom logu: 'DEBUG', 'INFO', 'WARNING', 'ERROR'
-%   message - treść komunikatu (może zawierać formatowanie sprintf)
-%   varargin - dodatkowe argumenty dla sprintf
-% =========================================================================
+% Składnia:
+%   writeLog(level, message, varargin)
+%
+% Argumenty:
+%   level - poziom komunikatu (DEBUG, INFO, WARNING, ERROR, SUCCESS)
+%   message - treść komunikatu (może zawierać formatowanie jak w printf)
+%   varargin - opcjonalne parametry do formatowania wiadomości
 
-% UŻYJ GLOBALNYCH ZMIENNYCH zamiast persistent
-global LOG_FILE_HANDLE LOG_ENABLED CURRENT_LOG_FILE;
+% Inicjalizacja globalnej zmiennej przechowującej uchwyt do pliku logu
+global LOG_FILE_HANDLE;
 
-% Inicjalizacja przy pierwszym wywołaniu
-if isempty(LOG_ENABLED)
-    fprintf('🔧 DEBUG: Inicjalizacja systemu logowania...\n');
-    
-    LOG_ENABLED = true;
-    
-    % Utworzenie nazwy pliku log z timestampem
-    timestamp = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
-    log_filename = sprintf('voice_recognition_%s.log', timestamp);
-    
-    % Sprawdzenie czy katalog logs istnieje
-    logs_dir = 'output/logs';
-    if ~exist(logs_dir, 'dir')
-        mkdir(logs_dir);
-        fprintf('🔧 DEBUG: Utworzono katalog %s\n', logs_dir);
-    end
-    
-    CURRENT_LOG_FILE = fullfile(logs_dir, log_filename);
-    fprintf('🔧 DEBUG: Próba utworzenia pliku: %s\n', CURRENT_LOG_FILE);
-    
-    % Otwarcie pliku do zapisu
-    LOG_FILE_HANDLE = fopen(CURRENT_LOG_FILE, 'w', 'n', 'UTF-8');
-    
-    if LOG_FILE_HANDLE == -1
-        warning('❌ Nie można utworzyć pliku log: %s', CURRENT_LOG_FILE);
-        LOG_ENABLED = false;
-    else
-        fprintf('✅ Plik log utworzony pomyślnie: %s\n', CURRENT_LOG_FILE);
-        % Nagłówek pliku log
-        fprintf(LOG_FILE_HANDLE, '========================================\n');
-        fprintf(LOG_FILE_HANDLE, 'INTELLIGENT VOICE RECOGNITION SYSTEM\n');
-        fprintf(LOG_FILE_HANDLE, 'Log rozpoczęty: %s\n', datestr(now));
-        fprintf(LOG_FILE_HANDLE, '========================================\n\n');
-    end
+% Formatowanie wiadomości z opcjonalnymi parametrami
+if ~isempty(varargin)
+    message = sprintf(message, varargin{:});
 end
 
-if ~LOG_ENABLED
-    return;
-end
-
-% Formatowanie wiadomości
-if nargin > 2
-    formatted_message = sprintf(message, varargin{:});
-else
-    formatted_message = message;
-end
-
-% Timestamp
+% Przygotowanie znacznika czasu
 timestamp = datestr(now, 'yyyy-mm-dd HH:MM:SS');
 
-% Ikony dla różnych poziomów
-switch upper(level)
+% Wybór ikony na podstawie poziomu
+switch level
     case 'DEBUG'
         icon = '🔍';
-        console_color = '';
     case 'INFO'
         icon = 'ℹ️';
-        console_color = '';
     case 'WARNING'
         icon = '⚠️';
-        console_color = '';
     case 'ERROR'
         icon = '❌';
-        console_color = '';
     case 'SUCCESS'
         icon = '✅';
-        console_color = '';
     otherwise
-        icon = '📝';
-        console_color = '';
-        level = 'INFO';
+        icon = '';
 end
 
-% Formatowanie linii log
-log_line = sprintf('[%s] %s %s: %s\n', timestamp, icon, upper(level), formatted_message);
+% Pełny komunikat z datą i poziomem
+full_message = sprintf('%s [%s] %s %s', timestamp, level, icon, message);
 
-% Zapis do pliku - ZAWSZE wszystkie poziomy
+% Wyświetl komunikat w konsoli MATLAB
+fprintf('%s\n', full_message);
+
+% Jeśli uchwyt do pliku nie istnieje, spróbuj go utworzyć
+if isempty(LOG_FILE_HANDLE) || LOG_FILE_HANDLE == -1
+    try
+        % Utwórz folder output/logs w głównym katalogu projektu, jeśli nie istnieje
+        log_dir = fullfile('output', 'logs');
+        if ~exist(log_dir, 'dir')
+            mkdir(log_dir);
+        end
+        
+        % Przygotuj nazwę pliku logu na podstawie daty
+        log_filename = fullfile(log_dir, sprintf('log_%s.txt', datestr(now, 'yyyymmdd_HHMMSS')));
+        
+        % Otwórz plik do zapisu (append)
+        LOG_FILE_HANDLE = fopen(log_filename, 'a');
+        
+        % Jeśli to nowy plik, dodaj nagłówek
+        if LOG_FILE_HANDLE ~= -1 && ftell(LOG_FILE_HANDLE) == 0
+            fprintf(LOG_FILE_HANDLE, '========================================\n');
+            fprintf(LOG_FILE_HANDLE, 'INTELLIGENT VOICE IDENTIFICATION SYSTEM\n');
+            fprintf(LOG_FILE_HANDLE, 'Log rozpoczęty: %s\n', datestr(now));
+            fprintf(LOG_FILE_HANDLE, '========================================\n\n');
+        end
+    catch
+        % W przypadku błędu, ustaw pusty uchwyt
+        LOG_FILE_HANDLE = -1;
+        fprintf('❌ Nie można otworzyć pliku logu!\n');
+    end
+end
+
+% Zapisz komunikat do pliku, jeśli jest otwarty
 if LOG_FILE_HANDLE ~= -1
-    fprintf(LOG_FILE_HANDLE, '%s', log_line);
-end
-
-% Wyświetlenie w konsoli - tylko ważne komunikaty
-if ismember(upper(level), {'INFO', 'WARNING', 'ERROR', 'SUCCESS'})
-    fprintf('%s', log_line);
+    try
+        fprintf(LOG_FILE_HANDLE, '%s\n', full_message);
+    catch
+        LOG_FILE_HANDLE = -1;
+        fprintf('❌ Błąd podczas zapisu do pliku logu!\n');
+    end
 end
 
 end
