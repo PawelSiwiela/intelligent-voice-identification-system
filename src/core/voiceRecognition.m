@@ -34,6 +34,10 @@ function [best_net, best_tr, results] = voiceRecognition(config)
 % INICJALIZACJA I USTAWIENIA DOMYŚLNE
 % =========================================================================
 
+% Ustaw globalną konfigurację dla systemu logowania
+global CURRENT_CONFIG;
+CURRENT_CONFIG = config;
+
 % Parametry domyślne
 if nargin < 1
     config = struct();

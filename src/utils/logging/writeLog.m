@@ -51,8 +51,19 @@ if isempty(LOG_FILE_HANDLE) || LOG_FILE_HANDLE == -1
             mkdir(log_dir);
         end
         
-        % Przygotuj nazwę pliku logu na podstawie daty
-        log_filename = fullfile(log_dir, sprintf('log_%s.txt', datestr(now, 'yyyymmdd_HHMMSS')));
+        % Generuj nazwę z kontekstem z globalnej zmiennej
+        global CURRENT_CONFIG;
+        
+        % Przygotuj nazwę pliku logu z informacjami o konfiguracji
+        if ~isempty(CURRENT_CONFIG)
+            scenario_suffix = getScenarioSuffix(CURRENT_CONFIG.scenario);
+            norm_suffix = getNormalizationSuffix(CURRENT_CONFIG.normalize_features);
+            log_filename = fullfile(log_dir, sprintf('log_%s_%s_%s.txt', ...
+                scenario_suffix, norm_suffix, datestr(now, 'yyyymmdd_HHMMSS')));
+        else
+            % Fallback dla przypadków bez konfiguracji
+            log_filename = fullfile(log_dir, sprintf('log_%s.txt', datestr(now, 'yyyymmdd_HHMMSS')));
+        end
         
         % Otwórz plik do zapisu (append)
         LOG_FILE_HANDLE = fopen(log_filename, 'a');
@@ -81,4 +92,31 @@ if LOG_FILE_HANDLE ~= -1
     end
 end
 
+end
+
+% =========================================================================
+% FUNKCJE POMOCNICZE DO GENEROWANIA NAZW
+% =========================================================================
+
+function suffix = getScenarioSuffix(scenario)
+% Generuje krótki sufiks dla scenariusza
+switch scenario
+    case 'vowels'
+        suffix = 'vowels';
+    case 'commands'
+        suffix = 'commands';
+    case 'all'
+        suffix = 'all';
+    otherwise
+        suffix = 'unknown';
+end
+end
+
+function suffix = getNormalizationSuffix(normalize_features)
+% Generuje sufiks dla stanu normalizacji
+if normalize_features
+    suffix = 'norm';
+else
+    suffix = 'raw';
+end
 end

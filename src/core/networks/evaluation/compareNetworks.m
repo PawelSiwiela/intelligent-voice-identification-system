@@ -190,93 +190,20 @@ logSuccess('✅ Analiza zakończona. Zwycięzca: %s (przewaga: %.2f%%)', ...
 % =========================================================================
 % ETAP 6: WIZUALIZACJA WYNIKÓW (OPCJONALNIE)
 % =========================================================================
-if isfield(config, 'show_visualizations') && config.show_visualizations
+
+% ZUNIFIKOWANY WARUNEK - obsługuje oba przypadki
+if (isfield(config, 'show_visualizations') && config.show_visualizations) || ...
+        (isfield(config, 'generate_visualizations') && config.generate_visualizations)
+    
     logInfo('📈 Generowanie wizualizacji porównawczych...');
     
-    % Utworzenie bazowego katalogu dla wizualizacji
-    viz_dir = fullfile('output', 'visualizations', datestr(now, 'yyyymmdd_HHMMSS'));
-    if ~exist(viz_dir, 'dir')
-        mkdir(viz_dir);
-        logInfo('📁 Utworzono katalog dla wizualizacji: %s', viz_dir);
-    end
-    
     try
-        % Macierze pomyłek dla obu sieci
-        viz_file1 = fullfile(viz_dir, 'confusion_patternnet.png');
-        viz_file2 = fullfile(viz_dir, 'confusion_feedforwardnet.png');
-        
-        visualizeConfusionMatrix(pattern_evaluation.confusion_matrix, labels, ...
-            sprintf('Macierz konfuzji - %s', 'Patternnet'), viz_file1);
-        
-        visualizeConfusionMatrix(feedforward_evaluation.confusion_matrix, labels, ...
-            sprintf('Macierz konfuzji - %s', 'Feedforwardnet'), viz_file2);
-        
-        % Wizualizacja porównania metryk
-        viz_file3 = fullfile(viz_dir, 'metrics_comparison.png');
-        visualizeMetricsComparison(pattern_evaluation, feedforward_evaluation, ...
-            'Patternnet', 'Feedforwardnet', viz_file3);
-        
-        % Wizualizacja postępu treningu
-        viz_file4 = fullfile(viz_dir, 'training_patternnet.png');
-        viz_file5 = fullfile(viz_dir, 'training_feedforwardnet.png');
-        visualizeTrainingProgress(pattern_tr, 'Patternnet', viz_file4);
-        visualizeTrainingProgress(feedforward_tr, 'Feedforwardnet', viz_file5);
-        
-        % Wizualizacja krzywych ROC
-        viz_file6 = fullfile(viz_dir, 'roc_patternnet.png');
-        viz_file7 = fullfile(viz_dir, 'roc_feedforwardnet.png');
-        
-        % Predykcje dla krzywej ROC
-        y_pred_pattern = pattern_net(X_test');
-        y_pred_feedforward = feedforward_net(X_test');
-        y_true = Y_test';
-        
-        visualizeROC(y_pred_pattern, y_true, 'Patternnet', viz_file6, labels);
-        visualizeROC(y_pred_feedforward, y_true, 'Feedforwardnet', viz_file7, labels);
-        
-        % Wizualizacja struktury sieci
-        viz_file8 = fullfile(viz_dir, 'structure_patternnet.png');
-        viz_file9 = fullfile(viz_dir, 'structure_feedforwardnet.png');
-        
-        visualizeNetworkStructure(pattern_net, sprintf('Struktura sieci %s', 'Patternnet'), viz_file8);
-        visualizeNetworkStructure(feedforward_net, sprintf('Struktura sieci %s', 'Feedforwardnet'), viz_file9);
-        
-        % Zapisanie informacji o metodzie optymalizacji
-        optim_info_file = fullfile(viz_dir, 'optimization_info.txt');
-        fid = fopen(optim_info_file, 'w');
-        fprintf(fid, 'Metoda optymalizacji: %s\n', comparison_results.comparison.optimization_method);
-        
-        if strcmp(comparison_results.comparison.optimization_method, 'genetic')
-            fprintf(fid, 'Parametry algorytmu genetycznego:\n');
-            fprintf(fid, '- Rozmiar populacji: %d\n', config.population_size);
-            fprintf(fid, '- Liczba generacji: %d\n', config.num_generations);
-            fprintf(fid, '- Współczynnik mutacji: %.2f\n', config.mutation_rate);
-            fprintf(fid, '- Współczynnik krzyżowania: %.2f\n', config.crossover_rate);
-            fprintf(fid, '- Rozmiar elity: %d\n', config.elite_count);
-            fprintf(fid, '- Metoda selekcji: %s\n', config.selection_method);
-        else
-            fprintf(fid, 'Parametry Random Search:\n');
-            fprintf(fid, '- Liczba prób: %d\n', config.max_trials);
-        end
-        fclose(fid);
-        
-        logSuccess('✅ Wizualizacje wygenerowane i zapisane do: %s', viz_dir);
-    catch e
-        logWarning('⚠️ Problem z generowaniem lub zapisywaniem wizualizacji: %s', e.message);
-        disp(e.stack);
-    end
-end
-
-% Wizualizacje (opcjonalne)
-if isfield(config, 'generate_visualizations') && config.generate_visualizations
-    try
-        % Przygotowanie foldera wizualizacji z lepszą nazwą
+        % Nazwa folderu z kontekstem konfiguracji
         timestamp = datestr(now, 'yyyymmdd_HHMMSS');
-        
-        % Generowanie opisowych składników nazwy
         scenario_suffix = getScenarioSuffix(config.scenario);
         norm_suffix = getNormalizationSuffix(config.normalize_features);
         
+        % ZAWSZE używaj opisowego formatu
         viz_dir = fullfile('output', 'visualizations', ...
             sprintf('%s_%s_%s', scenario_suffix, norm_suffix, timestamp));
         
@@ -285,29 +212,29 @@ if isfield(config, 'generate_visualizations') && config.generate_visualizations
             logInfo('📁 Utworzono katalog wizualizacji: %s', viz_dir);
         end
         
-        % Generowanie nazw plików z opisowymi prefiksami
+        % WSZYSTKIE wizualizacje z opisowymi nazwami
         confusion_pattern_file = fullfile(viz_dir, ...
-            sprintf('confusion_patternnet_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+            sprintf('confusion_patternnet_%s_%s.png', scenario_suffix, norm_suffix));
         confusion_feedforward_file = fullfile(viz_dir, ...
-            sprintf('confusion_feedforward_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+            sprintf('confusion_feedforward_%s_%s.png', scenario_suffix, norm_suffix));
         
         metrics_comparison_file = fullfile(viz_dir, ...
-            sprintf('metrics_comparison_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+            sprintf('metrics_comparison_%s_%s.png', scenario_suffix, norm_suffix));
         
         training_pattern_file = fullfile(viz_dir, ...
-            sprintf('training_patternnet_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+            sprintf('training_patternnet_%s_%s.png', scenario_suffix, norm_suffix));
         training_feedforward_file = fullfile(viz_dir, ...
-            sprintf('training_feedforward_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+            sprintf('training_feedforward_%s_%s.png', scenario_suffix, norm_suffix));
         
         roc_pattern_file = fullfile(viz_dir, ...
-            sprintf('roc_patternnet_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+            sprintf('roc_patternnet_%s_%s.png', scenario_suffix, norm_suffix));
         roc_feedforward_file = fullfile(viz_dir, ...
-            sprintf('roc_feedforward_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+            sprintf('roc_feedforward_%s_%s.png', scenario_suffix, norm_suffix));
         
         structure_pattern_file = fullfile(viz_dir, ...
-            sprintf('structure_patternnet_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+            sprintf('structure_patternnet_%s_%s.png', scenario_suffix, norm_suffix));
         structure_feedforward_file = fullfile(viz_dir, ...
-            sprintf('structure_feedforward_%s_%s_%s.png', scenario_suffix, norm_suffix, timestamp));
+            sprintf('structure_feedforward_%s_%s.png', scenario_suffix, norm_suffix));
         
         % Macierze pomyłek dla obu sieci
         visualizeConfusionMatrix(pattern_evaluation.confusion_matrix, labels, ...
@@ -344,10 +271,30 @@ if isfield(config, 'generate_visualizations') && config.generate_visualizations
         visualizeNetworkStructure(feedforward_net, ...
             sprintf('Struktura Feedforwardnet (%s, %s)', scenario_suffix, norm_suffix), structure_feedforward_file);
         
-        logSuccess('✅ Wizualizacje opisowe wygenerowane i zapisane do: %s', viz_dir);
+        % Zapisanie informacji o metodzie optymalizacji
+        optim_info_file = fullfile(viz_dir, 'optimization_info.txt');
+        fid = fopen(optim_info_file, 'w');
+        fprintf(fid, 'Scenariusz: %s\n', config.scenario);
+        fprintf(fid, 'Normalizacja: %s\n', yesno(config.normalize_features));
+        fprintf(fid, 'Metoda optymalizacji: %s\n', comparison_results.comparison.optimization_method);
+        
+        if strcmp(comparison_results.comparison.optimization_method, 'genetic')
+            fprintf(fid, 'Parametry algorytmu genetycznego:\n');
+            fprintf(fid, '- Rozmiar populacji: %d\n', config.population_size);
+            fprintf(fid, '- Liczba generacji: %d\n', config.num_generations);
+            fprintf(fid, '- Współczynnik mutacji: %.2f\n', config.mutation_rate);
+            fprintf(fid, '- Współczynnik krzyżowania: %.2f\n', config.crossover_rate);
+            fprintf(fid, '- Rozmiar elity: %d\n', config.elite_count);
+            fprintf(fid, '- Metoda selekcji: %s\n', config.selection_method);
+        else
+            fprintf(fid, 'Parametry Random Search:\n');
+            fprintf(fid, '- Liczba prób: %d\n', config.max_trials);
+        end
+        fclose(fid);
+        
+        logSuccess('✅ Wizualizacje wygenerowane i zapisane do: %s', viz_dir);
     catch e
-        logWarning('⚠️ Problem z generowaniem lub zapisywaniem wizualizacji opisowych: %s', e.message);
-        disp(e.stack);
+        logWarning('⚠️ Problem z generowaniem wizualizacji: %s', e.message);
     end
 end
 
