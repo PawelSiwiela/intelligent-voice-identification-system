@@ -38,12 +38,12 @@ switch config.scenario
     case 'commands'
         % Konfiguracja dla komend - średnio złożony problem
         param_ranges.hidden_layers = {
-            [19], [20], [21], [22], [23], [24], [25], [26], [27], [28]
+            [10], [12], [14], [16], [18], [20], [22], [24], [26], [28]
             };
         param_ranges.training_algs = {'trainbr', 'trainlm'};
         param_ranges.activation_functions = {'logsig', 'tansig'};
-        param_ranges.epochs_range = [150, 200, 300];
-        param_ranges.learning_rates = [0.01, 0.015, 0.02, 0.025, 0.03];
+        param_ranges.epochs_range = [150, 250, 350, 450];
+        param_ranges.learning_rates = [0.01, 0.012, 0.014, 0.016, 0.018, 0.02];
         
     case 'all'
         % ZOPTYMALIZOWANA KONFIGURACJA - skupiamy się na eksploatacji najlepszych znanych parametrów
