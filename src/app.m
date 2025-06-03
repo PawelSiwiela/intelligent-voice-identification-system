@@ -59,8 +59,44 @@ end
 
 fprintf('\n');
 
+% ===== SELEKCJA CECH =====
+fprintf('KROK 3: Strategia wyboru cech\n');
+fprintf('1 - Zalecany zestaw cech\n');
+fprintf('2 - Wszystkie dostępne cechy (40 cech)\n');
+fprintf('3 - Pozwól mi wybrać liczbę cech\n');
+fprintf('Wybierz strategię [1-3]: ');
+featureChoice = input('');
+
+switch featureChoice
+    case 1
+        config.feature_selection = 'optimized';
+        fprintf('✓ Wybrano: automatyczna selekcja cech\n');
+        
+    case 2
+        config.feature_selection = 'all';
+        fprintf('✓ Wybrano: wszystkie 40 cech\n');
+        
+    case 3
+        config.feature_selection = 'custom';
+        fprintf('Ile cech chcesz użyć (10-40)? ');
+        num_features = input('');
+        if num_features >= 10 && num_features <= 40
+            config.desired_features = num_features;
+            fprintf('✓ Wybrano: %d najważniejszych cech\n', num_features);
+        else
+            config.feature_selection = 'optimized';
+            fprintf('⚠ Nieprawidłowa liczba. Ustawiam automatyczną selekcję\n');
+        end
+        
+    otherwise
+        config.feature_selection = 'optimized';
+        fprintf('⚠ Nieprawidłowy wybór. Ustawiam automatyczną selekcję\n');
+end
+
+fprintf('\n');
+
 % ===== POZIOM ZŁOŻONOŚCI ALGORYTMU =====
-fprintf('KROK 3: Poziom złożoności obliczeń\n');
+fprintf('KROK 4: Poziom złożoności obliczeń\n');
 fprintf('1 - Niski (szybkie działanie, niższa dokładność)\n');
 fprintf('2 - Średni (zalecany)\n');
 fprintf('3 - Wysoki (dokładniejszy, ale wolny)\n');
@@ -100,6 +136,15 @@ end
 
 fprintf('\n');
 
+% ===== PODSUMOWANIE KONFIGURACJI =====
+printHeader('PODSUMOWANIE KONFIGURACJI');
+fprintf('Scenariusz: %s\n', getScenarioName(config.scenario));
+fprintf('Normalizacja cech: %s\n', getYesNo(config.normalize_features));
+fprintf('Strategia cech: %s\n', getFeatureSelectionName(config.feature_selection, config)); % POPRAWKA!
+fprintf('Poziom złożoności: %s (pop=%d, gen=%d)\n', getComplexityName(complexityChoice), ...
+    config.population_size, config.num_generations);
+fprintf('\n');
+
 % ===== DODATKOWE PARAMETRY =====
 config.optimization_method = 'genetic';
 config.elite_count = 2;
@@ -107,16 +152,9 @@ config.tournament_size = 4;
 config.early_stopping = true;
 config.golden_accuracy = 0.95;
 config.show_visualizations = true;
+config.generate_visualizations = true; % DODAJ TO!
 config.noise_level = 0.1;
 config.num_samples = 10;
-
-% ===== PODSUMOWANIE KONFIGURACJI =====
-printHeader('PODSUMOWANIE KONFIGURACJI');
-fprintf('Scenariusz: %s\n', getScenarioName(config.scenario));
-fprintf('Normalizacja cech: %s\n', getYesNo(config.normalize_features));
-fprintf('Poziom złożoności: %s (pop=%d, gen=%d)\n', getComplexityName(complexityChoice), ...
-    config.population_size, config.num_generations);
-fprintf('\n');
 
 % ===== URUCHOMIENIE SYSTEMU =====
 fprintf('Czy uruchomić system z powyższymi ustawieniami? (t/n): ');
@@ -193,5 +231,23 @@ switch level
         name = 'Wysoki';
     otherwise
         name = 'Średni (domyślny)';
+end
+end
+
+% DODAJ NA KOŃCU: Nową funkcję helper
+function name = getFeatureSelectionName(selection_type, config)
+switch selection_type
+    case 'optimized'
+        name = 'Automatyczna selekcja (zoptymalizowane)';
+    case 'all'
+        name = 'Wszystkie dostępne cechy (40 cech)';
+    case 'custom'
+        if isfield(config, 'desired_features')
+            name = sprintf('Wybrane przez użytkownika (%d cech)', config.desired_features);
+        else
+            name = 'Wybrane przez użytkownika';
+        end
+    otherwise
+        name = selection_type;
 end
 end

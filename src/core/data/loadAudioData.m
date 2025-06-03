@@ -1,4 +1,4 @@
-function [X, Y, labels, successful_loads, failed_loads] = loadAudioData(noise_level, num_samples, use_vowels, use_complex, normalize_features_flag)
+function [X, Y, labels, successful_loads, failed_loads] = loadAudioData(noise_level, num_samples, use_vowels, use_complex, normalize_features_flag, feature_config)
 % LOADAUDIODATA Wczytuje i przetwarza dane audio dla różnych scenariuszy
 %
 % Składnia:
@@ -18,6 +18,9 @@ function [X, Y, labels, successful_loads, failed_loads] = loadAudioData(noise_le
 %   successful_loads, failed_loads - liczniki wczytań
 
 % Walidacja argumentów wejściowych
+if nargin < 6
+    feature_config = struct('feature_selection', 'optimized');
+end
 if nargin < 5
     normalize_features_flag = true;
 end
@@ -31,7 +34,8 @@ config = struct(...
     'num_samples', num_samples, ...
     'use_vowels', use_vowels, ...
     'use_complex', use_complex, ...
-    'normalize', normalize_features_flag);
+    'normalize', normalize_features_flag, ...
+    'feature_config', feature_config);
 
 % Próba wczytania wcześniej przetworzonych danych (cache)
 [cached_data, cache_exists] = loadCachedData(config);
@@ -66,7 +70,7 @@ complex_commands = {
     'Odbiornik/Włącz odbiornik', 'Odbiornik/Wyłącz odbiornik', ...
     'Światło/Włącz światło', 'Światło/Wyłącz światło', ...
     'Temperatura/Zmniejsz temperaturę', 'Temperatura/Zwiększ temperaturę'
-};
+    };
 
 all_commands = {};
 speed_types = {'normalnie', 'szybko'};
@@ -89,7 +93,7 @@ if use_vowels && use_complex
     labels = [vowels, all_commands];
     logInfo('🏷️ Scenariusz: wszystkie dane (%d samogłosek + %d komend = %d kategorii)', ...
         num_vowels, num_commands, total_categories);
-        
+    
 elseif use_vowels
     total_categories = num_vowels;
     labels = vowels;
@@ -171,6 +175,64 @@ end
 saveProcessedData(X, Y, labels, successful_loads, failed_loads, config);
 
 logInfo('📊 Podsumowanie: %d udanych, %d nieudanych wczytań', successful_loads, failed_loads);
+
+% =========================================================================
+% POST-PROCESSING: SELEKCJA CECH WEDŁUG SCENARIUSZA
+% =========================================================================
+
+% Określenie scenariusza na podstawie flag
+if use_vowels && use_complex
+    scenario = 'all';
+elseif use_vowels
+    scenario = 'vowels';
+else
+    scenario = 'commands';
+end
+
+logInfo('🎯 Selekcja cech dla scenariusza: %s', scenario);
+
+% PRZEKAŻ feature_config do funkcji selekcji
+[X, selected_feature_names] = selectFeaturesForScenario(X, scenario, feature_config);
+
+logInfo('📊 Użyto %d z 40 dostępnych cech', size(X, 2));
+
+% Aktualizacja feature_dim do rzeczywistej liczby wybranych cech
+feature_dim = size(X, 2);
+
+% =========================================================================
+% WALIDACJA I FINALIZACJA
+% =========================================================================
+
+% Sprawdzenie ilości wczytanych danych
+if successful_loads < 10
+    logWarning('⚠️ Zbyt mało próbek do analizy! Wczytano tylko %d próbek.', successful_loads);
+end
+
+if isempty(X)
+    logError('❌ Nie udało się wczytać żadnych danych!');
+    error('Nie udało się wczytać żadnych danych!');
+end
+
+% Walidacja zgodności wymiarów macierzy
+if size(X, 1) ~= size(Y, 1)
+    logError('❌ Niezgodność wymiarów X(%dx%d) i Y(%dx%d)', ...
+        size(X,1), size(X,2), size(Y,1), size(Y,2));
+    error('Niezgodność wymiarów między macierzami X i Y!');
+end
+
+% Normalizacja cech (opcjonalna) - ZOSTAJE BEZ ZMIAN
+if normalize_features_flag && ~isempty(X)
+    logInfo('⚖️ Normalizacja cech...');
+    [X, norm_params] = normalizeFeatures(X);
+    config.norm_params = norm_params;
+else
+    logInfo('🔧 Pomijanie normalizacji cech...');
+end
+
+% Zapis przetworzonychdanych do cache
+saveProcessedData(X, Y, labels, successful_loads, failed_loads, config);
+
+logInfo('📊 Podsumowanie po selekcji cech: %d udanych, %d nieudanych wczytań', successful_loads, failed_loads);
 
 end
 

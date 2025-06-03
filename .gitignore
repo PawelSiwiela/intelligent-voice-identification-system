@@ -39,40 +39,20 @@ Thumbs.db
 *.bak
 
 
-# Zbiór danych
+# Zbiór danych 
 # =========================================================================
-data/
+/data/
 
-# Generowane pliki - duże i niepotrzebne w repo
+# Cały folder output - wszystkie generowane pliki
 # =========================================================================
-# Cache preprocessingu
-output/preprocessed/*.mat
-# Wytrenowane sieci (duże pliki)
-output/networks/*.mat
-# Wizualizacje i wykresy
-output/visualizations/
+output/
 
-# Logi - zachowaj tylko najważniejsze
+# Zachowaj strukturę folderów (puste .gitkeep)
 # =========================================================================
-# Keep recent logs but ignore old ones
-output/logs/log_*.txt
-# But keep important logs or error reports
-!output/logs/*error*.txt
-!output/logs/*final*.txt
-
-# Tymczasowe pliki
-# =========================================================================
-# Profile results
-profile_results.mat
-# Session files
-*.session.mat
-# Temporary cache
-*.cache
-temp/
-tmp/
-
-# Zachowaj strukturę folderów
-# =========================================================================
-# Ensure output directories exist
-!output/*/.gitkeep
-!data/.gitkeep
+!output/.gitkeep
+!output/logs/.gitkeep
+!output/networks/.gitkeep
+!output/preprocessed/.gitkeep
+!output/visualizations/.gitkeep
+!output/results/.gitkeep
+!/data/.gitkeep

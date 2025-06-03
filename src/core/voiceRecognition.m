@@ -149,9 +149,22 @@ try
             use_complex = true;
     end
     
-    % Wczytanie danych audio z automatycznym preprocessingiem
+    % Przygotowanie feature_config z app.m
+    feature_config = struct();
+    if isfield(config, 'feature_selection')
+        feature_config.feature_selection = config.feature_selection;
+    else
+        feature_config.feature_selection = 'optimized';
+    end
+    
+    if isfield(config, 'desired_features')
+        feature_config.desired_features = config.desired_features;
+    end
+    
+    % Wczytanie danych audio z automatycznym preprocessingiem i selekcją cech
     [X, Y, labels, successful_loads, failed_loads] = loadAudioData(...
-        config.noise_level, config.num_samples, use_vowels, use_complex, config.normalize_features);
+        config.noise_level, config.num_samples, use_vowels, use_complex, ...
+        config.normalize_features, feature_config);  % DODAJ feature_config!
     
     logInfo('✅ Wczytano %d próbek (%d nieudanych) z %d kategorii', ...
         successful_loads, failed_loads, length(labels));
