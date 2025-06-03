@@ -44,23 +44,23 @@ end
 % Dostosowanie parametrów do scenariusza
 switch config.scenario
     case 'vowels'
-        % Scenariusz tylko samogłoski - mniej złożony problem, potrzebujemy mniejszych sieci
+        % Scenariusz tylko samogłoski
         logInfo('🔧 Konfiguracja optymalizacji dla SAMOGŁOSEK');
-        hidden_layers = {[5], [10], [15], [5 3], [10 5], [15 7]}; % Mniejsze sieci
-        training_algs = {'trainscg', 'traingdx', 'trainrp'}; % Szybsze algorytmy
+        hidden_layers = {[8], [10], [12], [15]};
+        training_algs = {'trainscg', 'traingdx', 'trainlm'};
         activation_functions = {'logsig', 'tansig'};
         epochs_range = [100, 150, 200];
+        learning_rates = [0.005, 0.01, 0.015, 0.02, 0.025, 0.03];
         
     case 'commands'
-        % Scenariusz tylko komendy złożone - średnio złożony problem
         logInfo('🔧 Konfiguracja optymalizacji dla KOMEND ZŁOŻONYCH');
-        hidden_layers = {[10], [20], [30], [10 5], [20 10], [30 15]}; % Średnie sieci
-        training_algs = {'trainscg', 'trainlm', 'traingdx', 'trainbfg'}; % Różne algorytmy
+        hidden_layers = {[10], [12], [14], [16], [18], [20], [22], [24], [26], [28]};
+        training_algs = {'trainbr', 'trainlm'};
         activation_functions = {'logsig', 'tansig'};
         epochs_range = [150, 200, 300];
+        learning_rates = [0.005, 0.01, 0.015, 0.02, 0.025, 0.03];
         
     case 'all'
-        % Scenariusz wszystkie dane - najbardziej złożony problem
         logInfo('🔧 Konfiguracja optymalizacji dla WSZYSTKICH DANYCH');
         hidden_layers = {[8], [10], [12], [8 4], [10 5], [12 6]};
         training_algs = {'trainbr', 'trainlm'};
@@ -68,36 +68,13 @@ switch config.scenario
         epochs_range = [200, 300, 500];
         learning_rates = [0.005, 0.01, 0.015, 0.02, 0.025, 0.03];
         
-        if ~isfield(config, 'net_params')
-            config.net_params = struct();
-        end
-        
-        % Parametry dla algorytmów uczenia
-        config.net_params = struct();
-        
-        % Parametry dla Bayesian Regularization
-        config.net_params.trainbr = struct();
-        config.net_params.trainbr.mu = 0.005;
-        config.net_params.trainbr.mu_dec = 0.1;
-        config.net_params.trainbr.mu_inc = 10;
-        config.net_params.trainbr.max_fail = 30;
-        config.net_params.trainbr.min_grad = 1e-10;
-        
-        % Parametry dla Levenberg-Marquardt
-        config.net_params.trainlm = struct();
-        config.net_params.trainlm.mu = 0.001;
-        config.net_params.trainlm.mu_dec = 0.1;
-        config.net_params.trainlm.mu_inc = 10;
-        config.net_params.trainlm.max_fail = 15;
-        config.net_params.trainlm.min_grad = 1e-7;
-        
     otherwise
-        % Domyślne parametry
         logWarning('⚠️ Nieznany scenariusz: %s. Używam domyślnych parametrów.', config.scenario);
         hidden_layers = {[10], [20], [30], [10 5], [20 10], [30 15]};
         training_algs = {'trainscg', 'trainlm', 'traingdx'};
         activation_functions = {'logsig'};
-        epochs_range = [200, 300];
+        epochs_range = [200, 300, 400];
+        learning_rates = [0.005, 0.01, 0.015, 0.02, 0.025, 0.03];
 end
 
 % Informacje o danych

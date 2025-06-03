@@ -95,43 +95,79 @@ end
 
 fprintf('\n');
 
+% ===== WYBÓR METODY OPTYMALIZACJI =====
+fprintf('KROK 4: Metoda optymalizacji hiperparametrów\n');
+fprintf('1 - Przeszukiwanie losowe (Random Search)\n');
+fprintf('2 - Algorytm genetyczny\n');
+fprintf('Wybierz metodę [1-2]: ');
+optMethodChoice = input('');
+
+switch optMethodChoice
+    case 1
+        config.optimization_method = 'random';
+        fprintf('✓ Wybrano: przeszukiwanie losowe\n');
+    case 2
+        config.optimization_method = 'genetic';
+        fprintf('✓ Wybrano: algorytm genetyczny\n');
+    otherwise
+        config.optimization_method = 'random';
+        fprintf('⚠ Nieprawidłowy wybór. Ustawiam domyślnie: przeszukiwanie losowe\n');
+end
+
+fprintf('\n');
+
 % ===== POZIOM ZŁOŻONOŚCI ALGORYTMU =====
-fprintf('KROK 4: Poziom złożoności obliczeń\n');
+fprintf('KROK 5: Poziom złożoności obliczeń\n');
 fprintf('1 - Niski (szybkie działanie, niższa dokładność)\n');
 fprintf('2 - Średni (zalecany)\n');
 fprintf('3 - Wysoki (dokładniejszy, ale wolny)\n');
 fprintf('Wybierz poziom złożoności [1-3]: ');
 complexityChoice = input('');
 
-% Ustawienie parametrów algorytmu genetycznego w zależności od wybranego poziomu
-switch complexityChoice
-    case 1 % Niski poziom złożoności
-        config.population_size = 8;
-        config.num_generations = 3;
-        config.mutation_rate = 0.2;
-        config.crossover_rate = 0.8;
-        fprintf('✓ Wybrano: niski poziom złożoności\n');
-        
-    case 2 % Średni poziom złożoności - zalecany
-        config.population_size = 12;
-        config.num_generations = 5;
-        config.mutation_rate = 0.2;
-        config.crossover_rate = 0.8;
-        fprintf('✓ Wybrano: średni poziom złożoności\n');
-        
-    case 3 % Wysoki poziom złożoności
-        config.population_size = 20;
-        config.num_generations = 8;
-        config.mutation_rate = 0.15;
-        config.crossover_rate = 0.85;
-        fprintf('✓ Wybrano: wysoki poziom złożoności\n');
-        
-    otherwise % Domyślnie - średni
-        config.population_size = 12;
-        config.num_generations = 5;
-        config.mutation_rate = 0.2;
-        config.crossover_rate = 0.8;
-        fprintf('⚠ Nieprawidłowy wybór. Ustawiam domyślnie: średni poziom złożoności\n');
+% Ustawienie parametrów w zależności od wybranej metody optymalizacji
+if strcmp(config.optimization_method, 'genetic')
+    switch complexityChoice
+        case 1 % Niski poziom złożoności
+            config.population_size = 8;
+            config.num_generations = 3;
+            config.mutation_rate = 0.2;
+            config.crossover_rate = 0.8;
+            fprintf('✓ Wybrano: niski poziom złożoności (genetyczny)\n');
+        case 2 % Średni poziom złożoności - zalecany
+            config.population_size = 12;
+            config.num_generations = 5;
+            config.mutation_rate = 0.2;
+            config.crossover_rate = 0.8;
+            fprintf('✓ Wybrano: średni poziom złożoności (genetyczny)\n');
+        case 3 % Wysoki poziom złożoności
+            config.population_size = 20;
+            config.num_generations = 8;
+            config.mutation_rate = 0.15;
+            config.crossover_rate = 0.85;
+            fprintf('✓ Wybrano: wysoki poziom złożoności (genetyczny)\n');
+        otherwise % Domyślnie - średni
+            config.population_size = 12;
+            config.num_generations = 5;
+            config.mutation_rate = 0.2;
+            config.crossover_rate = 0.8;
+            fprintf('⚠ Nieprawidłowy wybór. Ustawiam domyślnie: średni poziom złożoności (genetyczny)\n');
+    end
+else
+    % Parametry dla random search (np. liczba prób)
+    switch complexityChoice
+        case 1
+            config.max_trials = 10;
+            fprintf('✓ Wybrano: niski poziom złożoności (random search)\n');
+        case 2
+            config.max_trials = 20;
+            fprintf('✓ Wybrano: średni poziom złożoności (random search)\n');
+        case 3
+            config.max_trials = 40;
+            fprintf('✓ Wybrano: wysoki poziom złożoności (random search)\n');
+        otherwise
+            config.max_trials = 20;
+            fprintf('⚠ Nieprawidłowy wybór. Ustawiam domyślnie: średni poziom złożoności (random search)\n');
+    end
 end
 
 fprintf('\n');
@@ -140,19 +176,26 @@ fprintf('\n');
 printHeader('PODSUMOWANIE KONFIGURACJI');
 fprintf('Scenariusz: %s\n', getScenarioName(config.scenario));
 fprintf('Normalizacja cech: %s\n', getYesNo(config.normalize_features));
-fprintf('Strategia cech: %s\n', getFeatureSelectionName(config.feature_selection, config)); % POPRAWKA!
-fprintf('Poziom złożoności: %s (pop=%d, gen=%d)\n', getComplexityName(complexityChoice), ...
-    config.population_size, config.num_generations);
+fprintf('Strategia cech: %s\n', getFeatureSelectionName(config.feature_selection, config));
+fprintf('Metoda optymalizacji: %s\n', getOptimizationMethodName(config.optimization_method));
+
+if strcmp(config.optimization_method, 'genetic')
+    fprintf('Poziom złożoności: %s (populacja=%d, generacje=%d, mutacja=%.2f, krzyżowanie=%.2f)\n', ...
+        getComplexityName(complexityChoice), config.population_size, config.num_generations, ...
+        config.mutation_rate, config.crossover_rate);
+elseif strcmp(config.optimization_method, 'random')
+    fprintf('Poziom złożoności: %s (liczba prób=%d)\n', ...
+        getComplexityName(complexityChoice), config.max_trials);
+end
 fprintf('\n');
 
 % ===== DODATKOWE PARAMETRY =====
-config.optimization_method = 'genetic';
 config.elite_count = 2;
 config.tournament_size = 4;
 config.early_stopping = true;
 config.golden_accuracy = 0.95;
 config.show_visualizations = true;
-config.generate_visualizations = true; % DODAJ TO!
+config.generate_visualizations = true;
 config.noise_level = 0.1;
 config.num_samples = 10;
 
@@ -249,5 +292,17 @@ switch selection_type
         end
     otherwise
         name = selection_type;
+end
+end
+
+% Dodaj na końcu pliku:
+function name = getOptimizationMethodName(method)
+switch method
+    case 'genetic'
+        name = 'Algorytm genetyczny';
+    case 'random'
+        name = 'Przeszukiwanie losowe (Random Search)';
+    otherwise
+        name = method;
 end
 end
