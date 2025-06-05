@@ -56,3 +56,6 @@ output/
 !output/visualizations/.gitkeep
 !output/results/.gitkeep
 !/data/.gitkeep
+
+# Ignoruj pliki PDF
+*.pdf
